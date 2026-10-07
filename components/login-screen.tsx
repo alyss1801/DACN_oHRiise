@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
 import { BrandMark } from "./brand-mark";
 
 const loginSchema = z.object({
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
+  const { resolvedTheme, setTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,11 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
       </section>
 
       <section className="login-panel">
+        <button className="login-theme-toggle" type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label="Chuyển đổi giao diện sáng tối" title="Chuyển đổi giao diện sáng tối">
+          <Sun className="theme-sun" size={16} strokeWidth={1.6} />
+          <span>Giao diện</span>
+          <Moon className="theme-moon" size={16} strokeWidth={1.6} />
+        </button>
         <div className="login-card">
           <div className="mobile-brand"><BrandMark /></div>
           <div className="eyebrow">{mfaRequired ? "XÁC THỰC ĐA YẾU TỐ" : "CHÀO MỪNG TRỞ LẠI"}</div>

@@ -163,8 +163,16 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .signal-card-small small { margin-top: 3px; color: #3abf80; font-size: 11px; }
 .login-security { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; margin: 26px 0 0; color: #58667b; font-size: 11px; }
 
-.login-panel { display: grid; place-items: center; padding: 44px; background: var(--background-soft); }
-.login-card { width: min(100%, 410px); }
+.login-panel { position: relative; display: grid; overflow: hidden; place-items: center; padding: 72px 44px 44px; background: var(--background-soft); transition: background 260ms ease; }
+.login-panel::before, .login-panel::after { position: absolute; pointer-events: none; content: ""; transition: opacity 260ms ease; }
+.light .login-panel { background: radial-gradient(circle at 88% 10%,rgba(114,230,0,.075),transparent 25%),radial-gradient(circle at 9% 18%,rgba(18,101,232,.085),transparent 29%),radial-gradient(circle at 78% 84%,rgba(0,210,200,.08),transparent 29%),linear-gradient(145deg,#fff 0%,#f7fbff 52%,#fff 100%); }
+.light .login-panel::before { top: -170px; right: -135px; width: 430px; height: 430px; border: 1px solid rgba(0,191,232,.11); border-radius: 46% 54% 64% 36%; background: conic-gradient(from 205deg,rgba(18,101,232,.025),rgba(0,210,200,.07),rgba(114,230,0,.035),rgba(18,101,232,.025)); filter: blur(4px); transform: rotate(-15deg); }
+.light .login-panel::after { bottom: -220px; left: -190px; width: 520px; height: 420px; border-radius: 50%; background: radial-gradient(circle,rgba(18,101,232,.065),rgba(0,210,200,.025) 48%,transparent 70%); }
+.dark .login-panel { background: radial-gradient(circle at 18% 12%,rgba(11,95,255,.07),transparent 28%),radial-gradient(circle at 84% 84%,rgba(0,201,200,.055),transparent 30%),var(--background-soft); }
+.login-card { position: relative; z-index: 1; width: min(100%, 410px); }
+.login-theme-toggle { position: absolute; z-index: 3; top: 24px; right: 28px; display: inline-flex; min-height: 36px; align-items: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 11px; background: color-mix(in srgb,var(--surface) 82%,transparent); padding: 0 11px; color: var(--text-secondary); font-size: 11px; font-weight: 500; box-shadow: 0 8px 24px rgba(7,50,122,.05); backdrop-filter: blur(14px); transition: transform 180ms ease,background 180ms ease,border-color 180ms ease; }
+.login-theme-toggle:hover { transform: translateY(-1px); border-color: color-mix(in srgb,var(--brand-blue) 28%,var(--border)); background: color-mix(in srgb,var(--surface) 94%,transparent); color: var(--text-primary); }
+.login-theme-toggle .theme-sun { color: #1265e8; }.login-theme-toggle .theme-moon { color: var(--text-muted); }.dark .login-theme-toggle .theme-sun { color: var(--text-muted); }.dark .login-theme-toggle .theme-moon { color: #67e8f9; }
 .mobile-brand { display: none; }
 .login-card h2 { margin: 12px 0 7px; font-size: 27px; letter-spacing: -.035em; }
 .login-subtitle { margin: 0 0 30px; color: var(--text-secondary); font-size: 13px; }
@@ -1339,7 +1347,8 @@ kbd { border: 1px solid var(--border); border-radius: 5px; background: rgba(148,
 @media (max-width: 900px) {
   .login-shell { grid-template-columns: 1fr; }
   .login-story { display: none; }
-  .login-panel { min-height: 100svh; padding: 28px; }
+  .login-panel { min-height: 100svh; padding: 76px 28px 28px; }
+  .login-theme-toggle { top: 20px; right: 20px; }
   .mobile-brand { display: block; margin-bottom: 58px; }
   .sidebar { transform: translateX(-105%); transition: transform 220ms ease; }
   .sidebar.is-open { transform: translateX(0); }
@@ -1407,6 +1416,7 @@ kbd { border: 1px solid var(--border); border-radius: 5px; background: rgba(148,
 }
 
 @media (max-width: 680px) {
+  .login-theme-toggle { right: 16px; }.login-theme-toggle span { display: none; }
   .app-loading { grid-template-columns: 1fr; }.loading-sidebar { display: none; }.skeleton-grid { grid-template-columns: 1fr; }.skeleton-card.wide { grid-row: auto; min-height: 260px; }
   .topbar { height: 66px; }
   .scope-chip, .search-trigger span, .search-trigger kbd { display: none; }
