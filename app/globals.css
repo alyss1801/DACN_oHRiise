@@ -1887,3 +1887,107 @@ body {
   .module-intro h2 { font-size: 28px; }
   .module-intro p { font-size: 14px; }
 }
+
+/* Clean asset framing — smaller artwork, lifted away from clipped edges */
+.module-header-visual {
+  top: 44%;
+  right: 20px;
+}
+
+.module-header-visual i {
+  width: 96px;
+  height: 96px;
+}
+
+.module-header-visual img {
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.module-transition-asset img {
+  width: 190px;
+  max-height: 190px;
+  object-position: center top;
+  translate: 0 -14px;
+}
+
+.ai-landing-art,
+.pipeline-visual {
+  transform: translateY(-18px);
+}
+
+.ai-landing-art img {
+  width: min(82%, 350px);
+  max-height: 350px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.pipeline-visual img {
+  width: min(82%, 340px);
+  max-height: 340px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.mail-empty img {
+  width: 104px;
+  max-height: 104px;
+  object-fit: contain;
+  object-position: center top;
+  translate: 0 -8px;
+}
+
+.loading-brand-visual img {
+  width: 100px;
+  max-height: 100px;
+  object-fit: contain;
+  object-position: center top;
+  translate: 0 -8px;
+}
+
+@media (max-width: 900px) {
+  .module-header-visual {
+    top: 43%;
+    right: 14px;
+  }
+
+  .module-header-visual img {
+    width: 106px;
+    height: 106px;
+  }
+
+  .module-header-visual i {
+    width: 82px;
+    height: 82px;
+  }
+
+  .module-transition-asset img { width: 168px; max-height: 168px; }
+  .ai-landing-art, .pipeline-visual { transform: translateY(-10px); }
+  .ai-landing-art img { width: min(64%, 280px); max-height: 280px; }
+  .pipeline-visual img { width: min(62%, 250px); max-height: 250px; }
+}
+
+@media (max-width: 680px) {
+  .module-header-visual {
+    top: 28px;
+    right: 8px;
+  }
+
+  .module-header-visual img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .module-header-visual i {
+    width: 62px;
+    height: 62px;
+  }
+
+  .module-transition-asset img { width: 138px; max-height: 138px; translate: 0 -10px; }
+  .ai-landing-art img { width: min(70%, 240px); max-height: 240px; }
+  .pipeline-visual img { width: min(68%, 220px); max-height: 220px; }
+  .loading-brand-visual img { width: 88px; max-height: 88px; }
+}
