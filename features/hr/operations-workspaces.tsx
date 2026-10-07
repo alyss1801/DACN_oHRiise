@@ -623,7 +623,7 @@ export function ReportsWorkspace() {
       <WorkspaceHeader
         eyebrow="HR · REPORTING"
         title="People analytics"
-        description={`Báo cáo ${scopeLabel.toLowerCase()} trong ${range}.`}
+        subtitle={`${scopeLabel} · ${range}`}
         action={can("reports", "export") ? (
           <button
             className="secondary-button"

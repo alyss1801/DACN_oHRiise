@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSession } from "@/features/session/session-context";
+import type { ModuleVisual } from "@/lib/module-visuals";
 
-export function TopBar({ title, onMenu, onCommand, onNavigate }: { title: string; onMenu: () => void; onCommand: () => void; onNavigate: (id: string) => void }) {
+export function TopBar({ title, visual, onMenu, onCommand, onNavigate }: { title: string; visual?: ModuleVisual; onMenu: () => void; onCommand: () => void; onNavigate: (id: string) => void }) {
   const { session } = useSession();
   const { resolvedTheme, setTheme } = useTheme();
 
@@ -12,7 +14,8 @@ export function TopBar({ title, onMenu, onCommand, onNavigate }: { title: string
     <header className="topbar">
       <div className="topbar-title-wrap">
         <button className="icon-button mobile-menu-button" onClick={onMenu} aria-label="Mở menu"><Menu size={19} strokeWidth={1.5} /></button>
-        <div><span className="topbar-kicker">Không gian làm việc</span><h1>{title}</h1></div>
+        {visual && <span className="topbar-module-visual" style={{ "--module-accent": visual.accent } as React.CSSProperties} aria-hidden="true"><i /><Image src={visual.asset} alt="" width={96} height={72} priority /></span>}
+        <strong className="topbar-module-title">{title}</strong>
       </div>
       <div className="topbar-actions">
         <div className="scope-chip"><span>Phạm vi</span><strong>{scopeLabel[session.effectiveScope]}</strong></div>

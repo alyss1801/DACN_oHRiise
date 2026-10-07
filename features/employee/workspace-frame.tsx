@@ -1,10 +1,9 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import Image from "next/image";
-import { createContext, useContext } from "react";
+import { createContext } from "react";
 import { X } from "lucide-react";
-import { visualForModule } from "@/lib/module-visuals";
+import { BrandPageDivider } from "@/components/brand-page-divider";
 import { cn } from "@/lib/utils";
 
 const ModuleVisualContext = createContext("home");
@@ -13,15 +12,17 @@ export function ModuleVisualProvider({ moduleId, children }: { moduleId: string;
   return <ModuleVisualContext.Provider value={moduleId}>{children}</ModuleVisualContext.Provider>;
 }
 
-export function WorkspaceHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
-  const moduleId = useContext(ModuleVisualContext);
-  const visual = visualForModule(moduleId);
-
+export function WorkspaceHeader({ title, subtitle, action }: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  subtitle?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
-    <section className={cn("page-intro module-intro", visual && "has-module-visual")} style={visual ? { "--module-accent": visual.accent } as React.CSSProperties : undefined}>
-      <div className="module-intro-copy"><div className="eyebrow">{eyebrow}</div><h2>{title}</h2><p>{description}</p></div>
-      {visual && <div className="module-header-visual" aria-hidden="true"><i /><Image src={visual.asset} alt="" width={220} height={165} sizes="(max-width: 680px) 112px, (max-width: 900px) 148px, 210px" /></div>}
-      {action && <div className="module-intro-action">{action}</div>}
+    <section className="module-action-strip" aria-label={`Tác vụ ${title}`}>
+      <BrandPageDivider />
+      {(subtitle || action) && <div className="module-action-row">{subtitle && <p>{subtitle}</p>}{action && <div className="module-intro-action">{action}</div>}</div>}
     </section>
   );
 }

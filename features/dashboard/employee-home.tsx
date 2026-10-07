@@ -18,6 +18,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
+import { WorkspaceHeader } from "@/features/employee/workspace-frame";
 import { useSession } from "@/features/session/session-context";
 import { WorkRhythmChart } from "./work-rhythm-chart";
 
@@ -39,14 +40,7 @@ export function EmployeeHome({ onNavigate }: { onNavigate: (id: string) => void 
 
   return (
     <div className="page-stack">
-      <section className="page-intro">
-        <div>
-          <div className="eyebrow">{dateLabel.toUpperCase()}</div>
-          <h2>Chào buổi sáng, Hà.</h2>
-          <p>{session.role} · {session.branch}</p>
-        </div>
-        <button className="primary-button" onClick={() => onNavigate("leave")}><Plus size={16} strokeWidth={1.5} /> Tạo yêu cầu</button>
-      </section>
+      <WorkspaceHeader title="Tổng quan" subtitle={`${dateLabel} · ${session.role} · ${session.branch}`} action={<button className="primary-button" onClick={() => onNavigate("leave")}><Plus size={16} strokeWidth={1.5} /> Tạo yêu cầu</button>} />
 
       <section className="bento-grid" aria-label="Tổng quan ngày làm việc">
         <article className="panel today-card">

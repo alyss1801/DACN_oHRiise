@@ -52,6 +52,10 @@ export function LeaveWorkspace() {
         ),
     [requests],
   );
+  const pendingRequests = useMemo(
+    () => requests.filter((item) => item.status === "pending").length,
+    [requests],
+  );
 
   function submitLeave() {
     if (reason.trim().length < 8) {
@@ -79,9 +83,8 @@ export function LeaveWorkspace() {
   return (
     <div className="page-stack">
       <WorkspaceHeader
-        eyebrow="NGHỈ PHÉP"
         title="Nghỉ phép"
-        description="Quản lý đơn nghỉ phép và theo dõi số dư phép của bạn."
+        subtitle={<>Còn 8.5 ngày phép · {pendingRequests} đơn đang chờ duyệt</>}
         action={
           <button className="primary-button" onClick={() => { setEditingId(""); setReason(""); setOpen(true); }}>
             <Plus size={16} strokeWidth={1.5} /> Tạo đơn nghỉ

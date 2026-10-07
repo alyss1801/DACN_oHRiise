@@ -34,7 +34,7 @@ export function ProductDemo({ initialModule = "home" }: { initialModule?: string
 
 function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: string; onSignOut: () => void }) {
   const { session } = useSession();
-  const [activeId, setActiveId] = useState(initialModule);
+  const [activeId, setActiveId] = useState(normalizeModuleId(initialModule));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -56,7 +56,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
     window.addEventListener("keydown", onKeyDown);
     function onPopState() {
       const id = new URLSearchParams(window.location.search).get("module") ?? "home";
-      setActiveId(id);
+      setActiveId(normalizeModuleId(id));
     }
     window.addEventListener("popstate", onPopState);
     return () => {
@@ -66,9 +66,10 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
   }, []);
 
   function navigate(id: string) {
-    setActiveId(id);
-    const nextUrl = id === "home" ? "/" : `/?module=${encodeURIComponent(id)}`;
-    window.history.pushState({ module: id }, "", nextUrl);
+    const nextId = normalizeModuleId(id);
+    setActiveId(nextId);
+    const nextUrl = nextId === "home" ? "/" : `/?module=${encodeURIComponent(nextId)}`;
+    window.history.pushState({ module: nextId }, "", nextUrl);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -84,12 +85,12 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
     <div className={`app-shell${sidebarCollapsed ? " sidebar-is-collapsed" : ""}`}>
       <Sidebar activeId={activeId} onNavigate={navigate} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} onSignOut={onSignOut} collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} />
       <div className="app-main">
-        <TopBar title={activeTitle} onMenu={() => setMobileOpen(true)} onCommand={() => setCommandOpen(true)} onNavigate={navigate} />
+        <TopBar title={activeTitle} visual={moduleVisual} onMenu={() => setMobileOpen(true)} onCommand={() => setCommandOpen(true)} onNavigate={navigate} />
         <main className="page-content">
           <AnimatePresence initial={false}>
             {moduleVisual && !reduceMotion && <motion.div className="module-transition" key={`visual-${activeId}`} aria-hidden="true" initial={{ opacity: 1 }} animate={{ opacity: 0 }} exit={{ opacity: 0 }} transition={{ duration: .14, delay: .48 }}>
               <motion.div className="module-transition-sweep" initial={{ opacity: 0, scaleX: .2 }} animate={{ opacity: [0, .92, 0], scaleX: [0.2, 1, 1.12] }} transition={{ duration: .4, times: [0, .42, 1], ease: "easeOut" }} />
-              <motion.div className="module-transition-asset" initial={{ opacity: 0, scale: .94, y: 8 }} animate={{ opacity: [0, 1, 1, 0], scale: [.94, 1, .84, .74], x: [0, 0, "24vw", "31vw"], y: [8, 0, -72, -118] }} transition={{ duration: .56, times: [0, .28, .76, 1], ease: [0.2, .75, .25, 1] }}><Image src={moduleVisual.asset} alt="" width={260} height={195} priority /></motion.div>
+              <motion.div className="module-transition-asset" initial={{ opacity: 0, scale: .94, y: 8 }} animate={{ opacity: [0, 1, 1, 0], scale: [.94, 1, .62, .42], x: [0, 0, "-22vw", "-31vw"], y: [8, 0, -76, -128] }} transition={{ duration: .56, times: [0, .28, .76, 1], ease: [0.2, .75, .25, 1] }}><Image src={moduleVisual.asset} alt="" width={260} height={195} priority /></motion.div>
             </motion.div>}
           </AnimatePresence>
           <AnimatePresence mode="wait" initial={false}>
@@ -102,4 +103,10 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} onNavigate={navigate} />
     </div>
   );
+}
+
+function normalizeModuleId(id: string) {
+  if (id === "schedule") return "attendance";
+  if (id === "wfh" || id === "leave" || id === "expenses") return "approvals";
+  return id;
 }

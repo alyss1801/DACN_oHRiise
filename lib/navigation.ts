@@ -14,7 +14,6 @@ import {
   Home,
   IdCard,
   LayoutList,
-  Laptop2,
   Network,
   MapPinned,
   MailWarning,
@@ -50,17 +49,14 @@ const registry: NavGroup[] = [
     items: [
       { id: "home", label: "Tổng quan", resource: "home", icon: Home },
       { id: "profile", label: "Hồ sơ của tôi", resource: "profile", icon: IdCard },
-      { id: "attendance", label: "Chấm công", resource: "attendance", icon: Clock3 },
-      { id: "schedule", label: "Lịch & đổi ca", resource: "schedule", icon: Repeat2 },
-      { id: "wfh", label: "Đăng ký WFH", resource: "wfh", icon: Laptop2 },
+      { id: "attendance", label: "Điểm danh", resource: "attendance", icon: Clock3 },
+      { id: "approvals", label: "Phê duyệt", resource: "approvals", icon: FileCheck2, badge: "4" },
       { id: "daily-report", label: "Daily Report", resource: "daily-report", icon: ClipboardList },
     ],
   },
   {
     label: "Công việc",
     items: [
-      { id: "leave", label: "Nghỉ phép", resource: "leave", icon: CalendarDays },
-      { id: "expenses", label: "Chi phí", resource: "expenses", icon: ReceiptText },
       { id: "email", label: "Email", resource: "email", icon: Mail, badge: "2" },
       { id: "performance", label: "Đánh giá hiệu suất", resource: "performance", icon: Goal },
       { id: "contracts", label: "Hợp đồng", resource: "contracts", icon: FileText },
@@ -72,7 +68,6 @@ const registry: NavGroup[] = [
     label: "Đội ngũ",
     items: [
       { id: "team", label: "Tổng quan đội ngũ", resource: "team", icon: UsersRound },
-      { id: "approvals", label: "Hộp thư phê duyệt", resource: "approvals", icon: FileCheck2, badge: "4" },
       { id: "team-calendar", label: "Lịch đội ngũ", resource: "team-calendar", icon: CalendarDays },
     ],
   },

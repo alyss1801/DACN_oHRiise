@@ -112,6 +112,29 @@ export const moduleVisuals: Record<string, ModuleVisual> = {
   },
 };
 
+const moduleVisualAliases: Record<string, keyof typeof moduleVisuals> = {
+  home: "reports",
+  "daily-report": "reports",
+  expenses: "payslip",
+  email: "notifications",
+  team: "organization",
+  approvals: "hr-contracts",
+  "attendance-monitoring": "attendance",
+  timesheets: "attendance",
+  "expense-review": "payslip",
+  "misa-sync": "payslip",
+  "branches-gps": "organization",
+  accounts: "permissions",
+  "access-reviews": "permissions",
+  delegation: "permissions",
+  catalogs: "admin-overview",
+  "email-dlp": "notifications",
+  "notification-config": "notifications",
+  integrations: "admin-overview",
+  audit: "permissions",
+  "ai-governance": "ai-cv",
+};
+
 export function visualForModule(moduleId: string) {
-  return moduleVisuals[moduleId];
+  return moduleVisuals[moduleId] ?? moduleVisuals[moduleVisualAliases[moduleId]];
 }

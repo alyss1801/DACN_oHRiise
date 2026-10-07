@@ -4,19 +4,17 @@ import { ArrowLeft, Check, Eye, EyeOff, LockKeyhole, Plus, ShieldAlert, Sparkles
 import { toast } from "sonner";
 import { useSession } from "@/features/session/session-context";
 import { can } from "@/lib/authorization/engine";
-import { AttendanceWorkspace } from "@/features/employee/attendance-workspace";
+import { WorkspaceHeader } from "@/features/employee/workspace-frame";
+import { AttendanceHubWorkspace } from "@/features/employee/attendance-hub-workspace";
 import { ContractWorkspace } from "@/features/employee/contract-workspace";
 import { DailyReportWorkspace } from "@/features/employee/daily-report-workspace";
-import { ExpenseWorkspace } from "@/features/employee/expense-workspace";
-import { LeaveWorkspace } from "@/features/employee/leave-workspace";
 import { NotificationsWorkspace } from "@/features/employee/notifications-workspace";
 import { PayslipWorkspace } from "@/features/employee/payslip-workspace";
 import { PerformanceWorkspace } from "@/features/employee/performance-workspace";
 import { ProfileWorkspace } from "@/features/employee/profile-workspace";
-import { OffboardingStatusWorkspace, ScheduleWorkspace } from "@/features/employee/schedule-workspace";
-import { WfhWorkspace } from "@/features/employee/wfh-workspace";
+import { OffboardingStatusWorkspace } from "@/features/employee/schedule-workspace";
 import { EmailWorkspace } from "@/features/email/email-workspace";
-import { ApprovalsWorkspace } from "@/features/team/approvals-workspace";
+import { ApprovalMiniappWorkspace } from "@/features/team/approval-miniapp-workspace";
 import { TeamCalendarWorkspace } from "@/features/team/team-calendar-workspace";
 import { TeamOverviewWorkspace } from "@/features/team/team-overview-workspace";
 import { WfhAiWorkspace } from "@/features/team/wfh-ai-workspace";
@@ -56,20 +54,21 @@ const moduleCopy: Record<string, { eyebrow: string; title: string; description: 
 
 export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: string; onHome: () => void; onNavigate: (id: string) => void }) {
   const { session, fieldVisibility } = useSession();
-  const copy = moduleCopy[moduleId] ?? { eyebrow: "oHRiise", title: "Không gian làm việc", description: "Module đang được xây dựng." };
-  const permission = session.permissions.find((item) => item.resource === moduleId);
+  const resolvedModuleId = moduleId === "schedule"
+    ? "attendance"
+    : moduleId === "wfh" || moduleId === "leave" || moduleId === "expenses"
+      ? "approvals"
+      : moduleId;
+  const copy = moduleCopy[resolvedModuleId] ?? { eyebrow: "oHRiise", title: "Không gian làm việc", description: "Module đang được xây dựng." };
+  const permission = session.permissions.find((item) => item.resource === resolvedModuleId);
 
-  if (!permission || !can(session, moduleId)) {
+  if (!permission || !can(session, resolvedModuleId)) {
     return <AccessDenied onHome={onHome} />;
   }
 
-  if (moduleId === "profile") return <ProfileWorkspace />;
-  if (moduleId === "attendance") return <AttendanceWorkspace onNavigate={onNavigate} />;
-  if (moduleId === "schedule") return <ScheduleWorkspace onNavigate={onNavigate} />;
-  if (moduleId === "wfh") return <WfhWorkspace onNavigate={onNavigate} />;
-  if (moduleId === "daily-report") return <DailyReportWorkspace />;
-  if (moduleId === "leave") return <LeaveWorkspace />;
-  if (moduleId === "expenses") return <ExpenseWorkspace />;
+  if (resolvedModuleId === "profile") return <ProfileWorkspace />;
+  if (resolvedModuleId === "attendance") return <AttendanceHubWorkspace />;
+  if (resolvedModuleId === "daily-report") return <DailyReportWorkspace />;
   if (moduleId === "email") return <EmailWorkspace onNavigate={onNavigate} />;
   if (moduleId === "contracts") return <ContractWorkspace />;
   if (moduleId === "offboarding-status") return <OffboardingStatusWorkspace />;
@@ -77,7 +76,7 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (moduleId === "performance") return <PerformanceWorkspace />;
   if (moduleId === "notifications") return <NotificationsWorkspace />;
   if (moduleId === "team") return <TeamOverviewWorkspace onNavigate={onNavigate} />;
-  if (moduleId === "approvals") return <ApprovalsWorkspace />;
+  if (resolvedModuleId === "approvals") return <ApprovalMiniappWorkspace />;
   if (moduleId === "team-calendar") return <TeamCalendarWorkspace />;
   if (moduleId === "ai-wfh") return <WfhAiWorkspace />;
   if (moduleId === "employees") return <EmployeesWorkspace />;
@@ -106,10 +105,10 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
 
   return (
     <div className="page-stack">
-      <section className="page-intro module-intro">
-        <div><div className="eyebrow">{copy.eyebrow}</div><h2>{copy.title}</h2><p>{copy.description}</p></div>
-        {copy.action && <button className="primary-button" onClick={() => toast.success(`${copy.action}: luồng demo đã sẵn sàng.`)}><Plus size={16} strokeWidth={1.5} /> {copy.action}</button>}
-      </section>
+      <WorkspaceHeader
+        title={copy.title}
+        action={copy.action ? <button className="primary-button" onClick={() => toast.success(`${copy.action}: luồng demo đã sẵn sàng.`)}><Plus size={16} strokeWidth={1.5} /> {copy.action}</button> : undefined}
+      />
 
       <section className="workspace-grid">
         <article className="panel workspace-primary">

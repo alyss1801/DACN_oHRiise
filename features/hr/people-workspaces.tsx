@@ -31,7 +31,7 @@ export function EmployeesWorkspace() {
 
   return (
     <div className="page-stack">
-      <WorkspaceHeader eyebrow="HR · EMPLOYEE DIRECTORY" title="Hồ sơ nhân sự" description={`${session.description} · ${filtered.length} hồ sơ trong phạm vi hiện tại.`} action={can("employees", "create") ? <button className="primary-button" onClick={() => setDrawerOpen(true)}><Plus size={15} strokeWidth={1.5} /> Thêm nhân sự</button> : <StatusPill tone="neutral">Chỉ được xem</StatusPill>} />
+      <WorkspaceHeader title="Hồ sơ nhân sự" subtitle={`${filtered.length} hồ sơ trong phạm vi hiện tại`} action={can("employees", "create") ? <button className="primary-button" onClick={() => setDrawerOpen(true)}><Plus size={15} strokeWidth={1.5} /> Thêm nhân sự</button> : <StatusPill tone="neutral">Chỉ được xem</StatusPill>} />
       <section className="directory-layout panel">
         <div className="directory-master">
           <div className="directory-tools">
