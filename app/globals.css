@@ -1517,3 +1517,373 @@ kbd { border: 1px solid var(--border); border-radius: 5px; background: rgba(148,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Typography & Readability Override — proportional, readable enterprise UI */
+body {
+  font-family: "Be Vietnam Pro", Inter, Geist, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.eyebrow,
+.nav-group-label,
+.topbar-kicker,
+[cmdk-group-heading] {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nav-group-label { font-weight: 600; }
+.nav-item { min-height: 44px; font-size: 14px; font-weight: 500; }
+.nav-item.is-active { font-size: 15px; font-weight: 600; }
+.nav-item b { font-size: 11px; }
+.workspace-chip strong, .persona-copy strong { font-size: 14px; font-weight: 600; }
+.workspace-chip span, .persona-copy span { font-size: 12px; }
+.persona-menu-head span, .persona-option span { font-size: 12px; }
+.persona-menu-head p, .persona-option strong { font-size: 14px; }
+
+.topbar h1 { font-size: 18px; font-weight: 650; }
+.scope-chip, .search-trigger { font-size: 13px; }
+.page-intro h2 { font-size: clamp(30px, 2.5vw, 36px); font-weight: 700; line-height: 1.16; }
+.page-intro p { max-width: 780px; font-size: 15px; line-height: 1.6; }
+.module-intro-copy > .eyebrow { font-size: 12px; }
+.panel-heading h3, .panel-heading.compact h3, .data-panel-head h3, .section-title h3 {
+  font-size: clamp(18px, 1.4vw, 21px);
+  font-weight: 650;
+  line-height: 1.35;
+}
+.section-title p, .form-card-head p { font-size: 13px; line-height: 1.55; }
+
+.primary-button, .secondary-button, .google-button, .text-button,
+.filter-button, .row-action, .header-actions button {
+  font-size: 14px;
+  font-weight: 600;
+}
+.primary-button { font-size: 15px; }
+
+.workflow-status, .status-badge, .status-pill, .ai-policy-badge {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+.workflow-status svg, .status-badge svg, .status-pill svg { width: 15px; height: 15px; flex: 0 0 auto; }
+
+.form-field > span { font-size: 14px; font-weight: 500; }
+.form-field > input, .form-field > select, .form-field > textarea,
+.payslip-actions select, .workflow-form-card input, .workflow-form-card select,
+.workflow-form-card textarea, .compact-search input, .candidate-search input,
+.filter-select, .compare-selector select {
+  font-size: 14px;
+}
+.form-field > small, .field-error, .upload-zone small { font-size: 12px; line-height: 1.5; }
+
+.data-table th, .permission-matrix th, .audit-header, .wfh-case-head {
+  font-size: 12px;
+  font-weight: 600;
+}
+.data-table td { height: 56px; font-size: 14px; }
+.data-table td strong { font-size: 15px; font-weight: 600; }
+.data-table td > span, .table-person-button small { font-size: 12px; }
+
+.compact-empty strong, .mail-empty strong, .cv-preview h3 { font-size: 18px; font-weight: 650; }
+.compact-empty p, .mail-empty p, .cv-preview p { font-size: 14px; line-height: 1.6; }
+
+/* Employee workspaces and high-frequency operational rows */
+.today-details > div, .leave-metric span, .metric-row, .delta,
+.rhythm-summary span, .quick-grid button, .activity-list p, .activity-list time,
+.permission-demo b, .permission-demo > div > span, .access-card > p,
+.access-list > div > span, .profile-summary > p, .profile-meta span,
+.profile-completion > div, .profile-completion small, .profile-tabs button,
+.info-item > span, .attendance-times span, .attendance-times small,
+.attendance-stat > p, .attendance-stat > div:not(.mini-progress),
+.policy-check p, .policy-list > div > span, .policy-list p,
+.request-date span, .request-reason span, .daily-date-head p,
+.task-progress > div, .task-reference input, .daily-status-list span,
+.daily-help p, .leave-balance-main > div:first-child > p, .balance-breakdown,
+.team-away p, .leave-context > small, .leave-policy > p,
+.expense-total p, .expense-flow small, .contract-hero > div > p,
+.contract-dates span, .contract-fields span, .lifecycle p, .payslip-head p,
+.payslip-row span, .bank-card span, .sync-source p,
+.notification-list > button > div > span, .notification-list p, .notification-list time,
+.channel-list span, .presence-legend span, .team-action-card > p,
+.team-member-list span, .approval-list span, .approval-list p,
+.approval-detail-head p, .approval-person span, .approval-facts span,
+.team-context p, .calendar-legends span, .calendar-weekdays span,
+.calendar-grid > div > span, .calendar-grid p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.today-details > div strong, .schedule-row strong, .activity-list strong,
+.build-note strong, .access-list strong, .info-item > strong,
+.inline-alert strong, .workflow-shortcuts strong, .request-date strong,
+.request-reason strong, .daily-status-list strong, .daily-help strong,
+.team-away strong, .expense-flow strong, .contract-dates strong,
+.contract-fields strong, .lifecycle strong, .payslip-row strong,
+.sync-source strong, .notification-list strong, .channel-list strong,
+.team-member-list strong, .approval-list strong, .approval-person strong,
+.approval-facts strong, .team-context strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.inline-alert p, .workflow-shortcuts p, .build-note p { font-size: 13px; line-height: 1.55; }
+.request-row { min-height: 78px; }
+.notification-tabs button, .approval-filters button, .profile-tabs button { font-size: 14px; font-weight: 500; }
+
+/* Shift and schedule workspace */
+.schedule-week-card .panel-heading h3 { font-size: 25px; }
+.schedule-week-list > div { min-height: 62px; }
+.schedule-week-list strong, .schedule-week-list b { font-size: 16px; font-weight: 600; }
+.schedule-week-list small { font-size: 13px; }
+.schedule-row { font-size: 13px; }
+.schedule-row strong { font-size: 15px; }
+.dynamic-qr-card .panel-heading h3 { font-size: 22px; }
+.qr-status { font-size: 13px; line-height: 1.5; }
+.comp-flow strong { font-size: 14px; }
+.comp-flow small { font-size: 12px; }
+.mini-calendar-weekdays, .weekly-bars small, .weekly-summary span,
+.calendar-legend, .leave-type-balances p span { font-size: 12px; }
+.mini-calendar-grid > span { min-height: 36px; font-size: 13px; }
+
+/* Mail and notifications */
+.mailbox-sidebar nav button, .shared-mailbox button { font-size: 14px; }
+.mailbox-sidebar nav button b, .shared-mailbox button b,
+.shared-mailbox > span, .mail-storage, .mail-storage small { font-size: 12px; }
+.mail-search input { font-size: 14px; }
+.message-list p strong { font-size: 15px; font-weight: 600; }
+.message-list h3 { font-size: 15px; }
+.message-list small { font-size: 13px; line-height: 1.5; }
+.message-list time, .message-list em { font-size: 12px; }
+.thread-view header h2 { font-size: clamp(26px, 2.2vw, 32px); }
+.thread-view header p strong { font-size: 15px; }
+.thread-view header p small { font-size: 12px; }
+.message-body { font-size: 15px; line-height: 1.75; }
+.attachment-card div span, .attachment-card > button.send-to-ai { font-size: 12px; }
+
+/* AI CV and WFH Intelligence */
+.ai-product-identity > div > span, .candidate-title > div > span { font-size: 12px; }
+.ai-product-identity h1 { font-size: clamp(30px, 2.4vw, 36px); font-weight: 700; }
+.ai-product-identity p { font-size: 14px; line-height: 1.5; }
+.ai-internal-nav button { font-size: 14px; font-weight: 500; }
+.ai-overview-copy h2 { font-size: clamp(36px, 3.4vw, 42px); font-weight: 700; }
+.ai-overview-copy > p { font-size: 16px; line-height: 1.65; }
+.ai-activity-strip strong { font-size: 17px; }
+.ai-activity-strip span { font-size: 13px; }
+.requisition-workspace > aside button strong, .criteria-grid span,
+.comparison-grid article header strong, .model-rule-list strong,
+.pipeline-interviews strong, .wfh-employee-directory strong,
+.case-session-list strong, .privacy-policy-grid strong,
+.employee-signal-timeline strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.requisition-workspace > aside button small, .candidate-queue em,
+.candidate-title p, .dossier-score span, .dossier-score small,
+.comparison-grid article header small, .ai-history-workspace time,
+.ai-history-workspace p, .ai-history-workspace small,
+.model-notes-workspace > div:first-child small, .pipeline-stages span,
+.pipeline-interviews time, .pipeline-interviews small,
+.wfh-case-list .table-person small, .wfh-employee-directory small,
+.case-session-list small, .case-evidence-pane header > div:last-child span,
+.evidence-stream time, .evidence-stream small, .evidence-stream em,
+.privacy-policy-grid small, .privacy-access-log time,
+.employee-signal-timeline time, .employee-signal-timeline small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.requisition-workspace h2, .comparison-workspace h2, .ai-history-workspace h2,
+.wfh-employee-directory h2, .privacy-command-center h2,
+.employee-session-summary h2 { font-size: clamp(30px, 2.5vw, 36px); font-weight: 700; }
+.requisition-workspace header p, .comparison-workspace header p,
+.model-notes-workspace > p, .pipeline-copy > p,
+.wfh-employee-directory header > span, .privacy-command-center header p,
+.employee-session-summary header p { font-size: 15px; line-height: 1.6; }
+.candidate-filters select, .wfh-case-list select, .queue-column-head { font-size: 13px; }
+.candidate-queue strong { font-size: 15px; }
+.candidate-queue small { font-size: 13px; }
+.candidate-queue > button > b { font-size: 14px; }
+.candidate-title h2 { font-size: 22px; }
+.dossier-tools button, .evidence-source button, .wfh-case-list > div > button { font-size: 14px; font-weight: 600; }
+.requirement-row p, .evidence-source p, .dossier-gaps p, .reviewer-note p,
+.candidate-dossier > footer p, .compare-labels > *,
+.comparison-grid article > span, .model-rule-list span,
+.wfh-case-list > div:not(.wfh-case-head), .case-evidence-pane header p,
+.evidence-stream > div > div > span, .case-inspector > div:first-child p,
+.privacy-access-log strong, .privacy-access-log span,
+.employee-session-note p { font-size: 14px; line-height: 1.55; }
+.evidence-source > span { font-size: 12px; }
+.dossier-gaps strong, .reviewer-note strong { font-size: 15px; }
+.case-evidence-pane h2 { font-size: 22px; }
+.evidence-stream > div > div p strong { font-size: 14px; }
+
+/* Admin, access management, audit and technical surfaces */
+.account-identity span, .account-identity p, .account-facts span,
+.effective-access-mini > div span, .template-list span,
+.permission-editor-head p, .permission-matrix td:first-child span,
+.sensitive-policy label span, .ui-preview > p, .preview-nav > div,
+.reviewer-banner p, .review-head > span, .review-queue article > p,
+.review-meta, .review-diff span, .audit-list time small,
+.delegation-rule p, .integration-config-card > p, .config-meta,
+.detail-tab-panel p, .audit-detail span, .compare-selector span,
+.report-alignment-detail > div span, .privacy-audit-panel > div span,
+.privacy-blur span, .evidence-preview > div:last-child span {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.account-identity h3, .permission-editor-head h3, .ui-preview h3,
+.review-queue article > h3, .integration-config-card h3 {
+  font-size: 18px;
+  font-weight: 650;
+}
+.account-facts strong, .effective-access-mini > div strong,
+.template-list strong, .permission-matrix td:first-child strong,
+.sensitive-policy > div strong, .reviewer-banner strong,
+.review-diff strong, .audit-list > button > strong,
+.delegation-rule strong, .detail-tab-panel strong,
+.audit-detail strong, .audit-detail p,
+.privacy-audit-panel > div strong, .evidence-preview > div:last-child strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bulk-actions span, .bulk-actions button, .effective-access-mini > button,
+.account-actions button, .template-list > button.add-template,
+.permission-editor-head select, .sensitive-policy select,
+.audit-toolbar > div:first-child button { font-size: 13px; }
+.source-badge { font-size: 11px; }
+.audit-list > button { min-height: 68px; }
+.audit-list time, .audit-list code, .audit-list > button > span { font-size: 12px; }
+
+[cmdk-empty], [cmdk-item] { font-size: 14px; }
+[cmdk-item] small, .command-footer { font-size: 12px; }
+.command-input-wrap input { font-size: 15px; }
+
+@media (max-width: 680px) {
+  body { font-size: 14px; }
+  .page-intro h2 { font-size: 28px; }
+  .page-intro p { font-size: 14px; }
+  .ai-product-identity h1 { font-size: 28px; }
+  .ai-overview-copy h2 { font-size: 30px; }
+  .ai-overview-copy > p { font-size: 15px; }
+  .schedule-week-card .panel-heading h3 { font-size: 23px; }
+  .module-tabs button { font-size: 13px; }
+}
+
+/* Minimum legibility backstop for legacy dense surfaces */
+:is(
+  .signal-card-small > span, .time-orbit span, .leave-metric span,
+  .activity-list strong, .permission-demo > div > strong, .upload-zone span,
+  .profile-meta strong, .info-item > strong, .daily-help strong,
+  .team-away strong, .expense-flow strong, .contract-dates strong,
+  .contract-fields strong, .lifecycle strong, .payslip-sections h3,
+  .payslip-row strong, .sync-source strong, .notification-list strong,
+  .channel-list strong, .team-member-list strong, .approval-list strong,
+  .approval-person strong, .approval-facts strong, .team-context strong,
+  .ai-summary-grid strong, .ai-employee-list strong, .evidence-timeline strong,
+  .employee-list strong, .employee-detail-hero strong, .employee-info-grid strong,
+  .effective-scope-note strong, .org-root strong, .org-node strong, .org-child strong,
+  .case-facts strong, .offboarding-checklist strong, .template-choice strong,
+  .generated-preview strong, .contract-list strong, .vertical-stepper strong,
+  .close-status strong, .warning-box strong, .sync-pipeline strong,
+  .report-breakdown strong, .candidate-list strong, .candidate-columns h4,
+  .interview-questions strong, .fairness-note strong, .service-grid strong,
+  .admin-alerts strong, .device-status strong, .catalog-row > strong,
+  .policy-toggle strong, .dlp-events strong, .model-card h3,
+  .reviewer-banner strong, .delegation-rule strong, .decision-note strong,
+  .hr-note strong, .analysis-progress > div, .methodology strong, .run-history strong
+) {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:is(
+  .signal-head, .signal-card-small small, .login-security, .login-theme-toggle,
+  .forgot-link, .divider, .login-notice, .login-footnote, .workspace-monogram,
+  .avatar, .avatar-sm, .time-orbit span, .metric-row, .delta, .chart-labels,
+  .rhythm-summary span, .count-badge, .activity-list p, .activity-list time,
+  .permission-demo b, .build-note p, .access-card > p, .access-list > div > span,
+  .denied-state p, .workflow-dialog-head p, .privacy-note, .boundary-note,
+  .offboarding-self-empty p, .profile-summary > p, .profile-meta span,
+  .profile-completion > div, .profile-completion small, .section-title p,
+  .info-item > span, .attendance-times span, .attendance-times small,
+  .attendance-stat > p, .attendance-stat > div:not(.mini-progress),
+  .policy-check p, .policy-list > div > span, .policy-list p,
+  .request-date span, .request-reason span, .calendar-tile span,
+  .daily-date-head p, .task-progress > div, .daily-status-list span,
+  .daily-help p, .leave-balance-main > div:first-child > p, .leave-ring small,
+  .balance-breakdown, .team-away p, .leave-context > small, .leave-policy > p,
+  .expense-total p, .expense-flow small, .contract-hero > div > p,
+  .contract-dates span, .contract-fields span, .lifecycle p, .payslip-head p,
+  .payslip-row span, .bank-card span, .sync-source p, .notification-tabs b,
+  .notification-list > button > div > span, .notification-list p,
+  .notification-list time, .channel-list span, .presence-legend span,
+  .team-action-card > p, .team-member-list span, .approval-list span,
+  .approval-list p, .approval-detail-head p, .approval-person span,
+  .approval-facts span, .team-context p, .calendar-legends span,
+  .calendar-weekdays span, .calendar-grid > div > span, .calendar-grid p,
+  .ai-summary-grid p, .ai-list-head small, .ai-employee-list span,
+  .ai-detail-head p, .ai-score span, .ai-score small, .evidence-timeline time,
+  .evidence-timeline p, .evidence-timeline small, .alignment-score span,
+  .alignment-list span, .ai-caution p, .review-complete p, .privacy-mini,
+  .employee-list span, .employee-detail-hero span, .employee-detail-hero p,
+  .employee-info-grid span, .effective-scope-note p, .org-root p,
+  .org-node small, .org-child small, .org-stat span, .case-head > div > span,
+  .case-head p, .case-facts span, .offboarding-checklist > button > span,
+  .offboarding-checklist p, .offboarding-side > p, .onboarding-stepper span,
+  .onboarding-stepper strong, .step-section > p, .template-choice p,
+  .generated-preview span, .onboarding-success p, .contract-list p,
+  .contract-workflow-head p, .vertical-stepper > div > span, .vertical-stepper p,
+  .ops-metric > p, .close-status p, .timesheet-checks span,
+  .timesheet-checks strong, .warning-box p, .integration-status p,
+  .sync-pipeline small, .headcount-chart .panel-heading small,
+  .bar-chart i span, .report-breakdown p, .turnover-card > p,
+  .payroll-report > p, .candidate-list span, .candidate-list p,
+  .match-score span, .match-score small, .score-breakdown p,
+  .candidate-columns p, .interview-questions ol, .compare-dimensions span,
+  .compare-dimensions strong, .compare-dimensions b, .fairness-note p,
+  .service-grid small, .admin-number > p, .admin-alerts small,
+  .integration-mini > div, .integration-mini strong, .storage-card > p,
+  .storage-card > small, .branch-list p, .branch-map > small,
+  .branch-config > p, .device-status span, .integration-cards article > p,
+  .integration-cards article > div:nth-of-type(2), .catalog-layout > aside span,
+  .catalog-row > span, .policy-toggle span, .dlp-events small,
+  .model-card > p, .model-card > div:not(.model-head), .methodology p,
+  .run-history p
+) {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:is(
+  .quick-grid button, .team-action-card > button, .approval-filters button,
+  .ai-tabs button, .employee-detail-tabs button, .onboarding-stepper strong,
+  .vertical-stepper button, .row-action, .admin-number > button,
+  .catalog-layout > aside button, .catalog-row > button, .bulk-actions button
+) {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.module-intro h2 { font-size: clamp(34px, 3vw, 40px); }
+.module-intro p { font-size: 16px; }
+.task-editor-row input, .task-reference input, .add-task-row input { font-size: 14px; }
+.add-task-row button { font-size: 14px; font-weight: 600; }
+.offboarding-self-empty h3 { font-size: 20px; }
+.employee-detail-tabs button, .ai-tabs button { font-size: 14px; font-weight: 500; }
+.evidence-timeline > div { min-height: 74px; }
+.evidence-timeline > div > b { font-size: 13px; }
+.candidate-ai-head h3 { font-size: 20px; }
+.candidate-ai-head p { font-size: 13px; }
+.match-score span, .match-score small { font-size: 12px; }
+.permission-matrix td { height: 56px; }
+.permission-matrix td:first-child strong { font-size: 14px; }
+.permission-matrix td:first-child span { font-size: 12px; }
+
+@media (max-width: 680px) {
+  .module-intro h2 { font-size: 28px; }
+  .module-intro p { font-size: 14px; }
+}
