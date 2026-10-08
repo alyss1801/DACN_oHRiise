@@ -16,15 +16,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { attendanceLogs } from "./mock-data";
+import { DeviceAttendance } from "./device-attendance";
 import { StatusPill, WorkspaceHeader } from "./workspace-frame";
 
-type AttendanceTab = "gps" | "qr" | "schedule";
+type AttendanceTab = "gps" | "qr" | "device" | "schedule";
 type CheckState = "idle" | "working" | "done";
 type WorkMode = "Văn phòng" | "Remote" | "Nghỉ phép" | "Off";
 
 const tabs: Array<{ id: AttendanceTab; label: string }> = [
   { id: "gps", label: "Điểm danh" },
   { id: "qr", label: "Điểm danh QR" },
+  { id: "device", label: "Thẻ từ / vân tay" },
   { id: "schedule", label: "Lịch làm việc" },
 ];
 
@@ -59,6 +61,7 @@ export function AttendanceHubWorkspace() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [checkState, setCheckState] = useState<CheckState>("idle");
   const [qrVersion, setQrVersion] = useState(1);
+  const [deviceScan, setDeviceScan] = useState<"ready" | "success">("ready");
   const [selectedDay, setSelectedDay] = useState(7);
   const visibleLogs = attendanceLogs.filter((log) => statusFilter === "all" || log.status === statusFilter);
 
@@ -80,6 +83,16 @@ export function AttendanceHubWorkspace() {
       </nav>
       {activeTab === "gps" && <GpsAttendance state={checkState} onCheckIn={checkIn} onCheckOut={checkOut} statusFilter={statusFilter} setStatusFilter={setStatusFilter} visibleLogs={visibleLogs} />}
       {activeTab === "qr" && <QrAttendance version={qrVersion} onRefresh={() => { setQrVersion((value) => value + 1); toast.success("Đã làm mới mã QR điểm danh."); }} />}
+      {activeTab === "device" && (
+        <DeviceAttendance
+          scanState={deviceScan}
+          onScan={() => {
+            setDeviceScan("success");
+            toast.success("Đã nhận diện Nguyễn Thu Hà tại thiết bị HCM-Q1-ENT-02 lúc 08:42.");
+          }}
+          onReset={() => setDeviceScan("ready")}
+        />
+      )}
       {activeTab === "schedule" && <WorkCalendar selectedDay={selectedDay} onSelectDay={setSelectedDay} />}
     </div>
   );
