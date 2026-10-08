@@ -56,7 +56,8 @@ const registry: NavGroup[] = [
       { id: "home", label: "Tổng quan", resource: "home", icon: Home },
       { id: "profile", label: "Hồ sơ của tôi", resource: "profile", icon: IdCard },
       { id: "attendance", label: "Điểm danh", resource: "attendance", icon: Clock3 },
-      { id: "approvals", label: "Phê duyệt", resource: "approvals", icon: FileCheck2, badge: "4" },
+      { id: "schedule", label: "Lịch & Quỹ thời gian", resource: "attendance", icon: CalendarDays },
+      { id: "approvals", label: "Phê duyệt", resource: "approvals", icon: FileCheck2, badge: "5" },
     ],
   },
   {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 
-export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Chi phí" | "Điều chỉnh chấm công" | "Đổi ca";
+export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Chi phí" | "Điều chỉnh chấm công" | "Đăng ký OT" | "Đổi ca";
 export type BusinessRequestStatus = "pending" | "approved" | "rejected" | "hr-review";
 export type WfhReportStatus = "not-required" | "draft" | "required" | "submitted";
 
@@ -64,6 +64,7 @@ const initialRequests: BusinessRequest[] = [
   { id: "LV-2026-191", type: "Nghỉ phép", employee: "Lê Hoàng Vy", initials: "LV", submitted: "42 phút trước", detail: "Nghỉ phép năm · 1 ngày", date: "15/10/2026", status: "pending" },
   { id: "EXP-2610-045", type: "Chi phí", employee: "Trần Minh Khoa", initials: "TK", submitted: "Hôm qua", detail: "JetBrains All Products Pack · 4.850.000 ₫", date: "06/10/2026", status: "pending" },
   { id: "ATT-2026-088", type: "Điều chỉnh chấm công", employee: "Võ Thu Linh", initials: "TL", submitted: "Hôm qua", detail: "Thiếu check-out ngày 05/10 · có ảnh xác nhận", date: "05/10/2026", status: "pending" },
+  { id: "OT-2026-041", type: "Đăng ký OT", employee: "Nguyễn Thu Hà", initials: "NH", submitted: "Hôm qua", detail: "2 giờ · Hoàn thiện bàn giao design system", date: "08/10/2026", status: "pending" },
 ];
 
 const initialAccounts: DemoAccount[] = [

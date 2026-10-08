@@ -1,0 +1,51 @@
+.schedule-fund-workspace .module-tabs { margin-top: -2px; }
+
+.time-fund-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+}
+
+.time-fund-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.time-fund-card { min-height: 170px; padding: 24px; }
+.time-fund-card > div { display: flex; align-items: center; justify-content: space-between; color: var(--text-secondary); font-size: 14px; font-weight: 650; }
+.time-fund-card > div i { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: rgb(10 79 216 / 10%); color: #5f9df9; }
+.time-fund-card.green > div i { background: rgb(126 214 0 / 10%); color: #76c91b; }
+.time-fund-card.cyan > div i { background: rgb(0 184 212 / 10%); color: #11bad2; }
+.time-fund-card.violet > div i { background: rgb(139 92 246 / 10%); color: #9f7aea; }
+.time-fund-card > strong { display: block; margin-top: 24px; color: var(--text-primary); font-size: 30px; line-height: 1; }
+.time-fund-card > p { margin: 10px 0 0; color: var(--text-secondary); font-size: 14px; }
+
+.time-fund-rule { display: flex; align-items: flex-start; gap: 13px; padding: 22px; color: #11bad2; }
+.time-fund-rule h3 { margin: 0; color: var(--text-primary); font-size: 17px; }
+.time-fund-rule p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; line-height: 1.55; }
+
+.time-fund-history { grid-column: 1 / -1; padding: 24px; }
+.time-fund-history > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.time-fund-history h2 { margin: 0; color: var(--text-primary); font-size: 20px; }
+.time-fund-history header p { margin: 6px 0 0; color: var(--text-secondary); font-size: 14px; }
+.time-fund-history header > span { display: inline-flex; align-items: center; gap: 7px; color: var(--text-secondary); font-size: 13px; }
+.time-fund-history-list > div { display: grid; grid-template-columns: 90px minmax(0, 1fr) 120px; align-items: center; min-height: 54px; border-top: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 14px; }
+.time-fund-history-list time { color: var(--text-secondary); }
+.time-fund-history-list span { display: inline-flex; align-items: center; gap: 10px; }
+.time-fund-history-list span i { width: 8px; height: 8px; border-radius: 50%; background: #4f8ff7; }
+.time-fund-history-list span i.green { background: #7ed600; }
+.time-fund-history-list span i.cyan { background: #00b8d4; }
+.time-fund-history-list span i.violet { background: #8b5cf6; }
+.time-fund-history-list strong { text-align: right; }
+
+@media (max-width: 1000px) {
+  .time-fund-layout { grid-template-columns: 1fr; }
+  .time-fund-history { grid-column: auto; }
+}
+
+@media (max-width: 680px) {
+  .time-fund-grid { grid-template-columns: 1fr; }
+  .time-fund-history > header { flex-direction: column; }
+  .time-fund-history-list > div { grid-template-columns: 64px minmax(0, 1fr) 88px; gap: 8px; }
+}

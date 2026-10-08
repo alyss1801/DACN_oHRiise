@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { useSession } from "@/features/session/session-context";
 import { can } from "@/lib/authorization/engine";
 import { WorkspaceHeader } from "@/features/employee/workspace-frame";
-import { AttendanceHubWorkspace } from "@/features/employee/attendance-hub-workspace";
+import { AttendanceCenterWorkspace } from "@/features/employee/attendance-center-workspace";
 import { ContractWorkspace } from "@/features/employee/contract-workspace";
 import { NotificationsWorkspace } from "@/features/employee/notifications-workspace";
 import { PayslipWorkspace } from "@/features/employee/payslip-workspace";
 import { PerformanceWorkspace } from "@/features/employee/performance-workspace";
 import { ProfileWorkspace } from "@/features/employee/profile-workspace";
+import { ScheduleTimeFundWorkspace } from "@/features/employee/schedule-time-fund-workspace";
 import { OffboardingStatusWorkspace } from "@/features/employee/schedule-workspace";
 import { EmailWorkspace } from "@/features/email/email-workspace";
 import { ApprovalMiniappWorkspace } from "@/features/team/approval-miniapp-workspace";
@@ -68,7 +69,8 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   }
 
   if (resolvedModuleId === "profile") return <ProfileWorkspace />;
-  if (resolvedModuleId === "attendance") return <AttendanceHubWorkspace />;
+  if (moduleId === "schedule") return <ScheduleTimeFundWorkspace />;
+  if (resolvedModuleId === "attendance") return <AttendanceCenterWorkspace />;
   if (moduleId === "email") return <EmailWorkspace onNavigate={onNavigate} />;
   if (moduleId === "contracts") return <ContractWorkspace />;
   if (moduleId === "offboarding-status") return <OffboardingStatusWorkspace />;

@@ -1,0 +1,14 @@
+.attendance-history-panel {
+  min-height: 430px;
+}
+
+.attendance-history-panel .data-panel-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.attendance-history-panel .data-panel-head p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

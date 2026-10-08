@@ -37,7 +37,7 @@ type CenterFolder = "todo" | "done" | "cc" | "sent";
 type RequestCategory = "all" | "attendance" | "finance" | "timeoff";
 
 type RequestTemplate = {
-  id: "adjustment" | "expense" | "wfh" | "leave";
+  id: "adjustment" | "overtime" | "expense" | "wfh" | "leave";
   label: string;
   shortLabel: string;
   description: string;
@@ -50,6 +50,7 @@ type RequestTemplate = {
 
 const requestTemplates: RequestTemplate[] = [
   { id: "adjustment", label: "Điều chỉnh Clock-in/out", shortLabel: "Điều chỉnh", description: "Bổ sung hoặc sửa thời gian điểm danh", category: "attendance", type: "Điều chỉnh chấm công", prefix: "ATT-2026", icon: FileClock, tone: "violet" },
+  { id: "overtime", label: "Đăng ký OT", shortLabel: "OT", description: "Đăng ký thời gian và công việc làm thêm", category: "attendance", type: "Đăng ký OT", prefix: "OT-2026", icon: Clock3, tone: "violet" },
   { id: "expense", label: "Xin chi tiền", shortLabel: "Kinh phí", description: "Đề nghị duyệt kinh phí hoặc hoàn ứng", category: "finance", type: "Chi phí", prefix: "EXP-2026", icon: Banknote, tone: "pink" },
   { id: "wfh", label: "Đơn WFH", shortLabel: "Remote", description: "Đăng ký làm việc từ xa", category: "timeoff", type: "WFH", prefix: "WFH-2026", icon: Laptop2, tone: "cyan" },
   { id: "leave", label: "Đơn nghỉ phép", shortLabel: "Nghỉ phép", description: "Phép năm, nghỉ bệnh hoặc nghỉ khác", category: "timeoff", type: "Nghỉ phép", prefix: "LV-2026", icon: CalendarDays, tone: "blue" },
@@ -95,7 +96,7 @@ export function ApprovalMiniappWorkspace() {
     setTemplate(item);
     setRequestDate("10/10/2026");
     setRequestDetail("");
-    setRequestOption(item.id === "adjustment" ? "Thiếu check-out" : item.id === "leave" ? "Phép năm" : "Cả ngày");
+    setRequestOption(item.id === "adjustment" ? "Thiếu check-out" : item.id === "overtime" ? "2 giờ" : item.id === "leave" ? "Phép năm" : "Cả ngày");
     setAmount("");
   }
 
@@ -197,15 +198,15 @@ export function ApprovalMiniappWorkspace() {
           {template?.id === "expense" ? (
             <FormField label="Số tiền đề nghị" required><input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="4.850.000" /></FormField>
           ) : (
-            <FormField label={template?.id === "adjustment" ? "Loại điều chỉnh" : template?.id === "leave" ? "Loại nghỉ" : "Thời lượng"} required>
+            <FormField label={template?.id === "adjustment" ? "Loại điều chỉnh" : template?.id === "overtime" ? "Thời lượng OT" : template?.id === "leave" ? "Loại nghỉ" : "Thời lượng"} required>
               <select value={requestOption} onChange={(event) => setRequestOption(event.target.value)}>
-                {template?.id === "adjustment" ? <><option>Thiếu check-in</option><option>Thiếu check-out</option><option>Sai thời gian</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <><option>Cả ngày</option><option>Buổi sáng</option><option>Buổi chiều</option></>}
+                {template?.id === "adjustment" ? <><option>Thiếu check-in</option><option>Thiếu check-out</option><option>Sai thời gian</option></> : template?.id === "overtime" ? <><option>1 giờ</option><option>2 giờ</option><option>3 giờ</option><option>4 giờ</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <><option>Cả ngày</option><option>Buổi sáng</option><option>Buổi chiều</option></>}
               </select>
             </FormField>
           )}
         </div>
         <div className="dialog-field-gap">
-          <FormField label={template?.id === "expense" ? "Mục đích chi" : template?.id === "wfh" ? "Kế hoạch công việc" : "Nội dung / lý do"} required>
+          <FormField label={template?.id === "expense" ? "Mục đích chi" : template?.id === "wfh" ? "Kế hoạch công việc" : template?.id === "overtime" ? "Công việc dự kiến" : "Nội dung / lý do"} required>
             <textarea value={requestDetail} onChange={(event) => setRequestDetail(event.target.value)} placeholder="Mô tả đủ thông tin để người duyệt ra quyết định..." />
           </FormField>
         </div>
@@ -240,10 +241,10 @@ function RequestCatalog({ query, setQuery, category, setCategory, visibleTemplat
       <div className="request-library panel">
         <aside>
           <span>Tất cả yêu cầu</span>
-          {[{ id: "all", label: "Tất cả" }, { id: "attendance", label: "Điểm danh" }, { id: "finance", label: "Tài chính" }, { id: "timeoff", label: "WFH & nghỉ phép" }].map((item) => <button className={category === item.id ? "is-active" : ""} key={item.id} onClick={() => setCategory(item.id as RequestCategory)}>{item.label}</button>)}
+          {[{ id: "all", label: "Tất cả" }, { id: "attendance", label: "Điểm danh & OT" }, { id: "finance", label: "Tài chính" }, { id: "timeoff", label: "WFH & nghỉ phép" }].map((item) => <button className={category === item.id ? "is-active" : ""} key={item.id} onClick={() => setCategory(item.id as RequestCategory)}>{item.label}</button>)}
         </aside>
         <div className="request-library-content">
-          <header><div><h2>{category === "all" ? "Tất cả yêu cầu" : category === "attendance" ? "Điểm danh" : category === "finance" ? "Tài chính" : "WFH & nghỉ phép"}</h2></div><span>{visibleTemplates.length} biểu mẫu</span></header>
+          <header><div><h2>{category === "all" ? "Tất cả yêu cầu" : category === "attendance" ? "Điểm danh & OT" : category === "finance" ? "Tài chính" : "WFH & nghỉ phép"}</h2></div><span>{visibleTemplates.length} biểu mẫu</span></header>
           <div className="request-tile-grid">{visibleTemplates.map((item) => <RequestTile key={item.id} item={item} onClick={() => openRequest(item)} />)}</div>
         </div>
       </div>
@@ -382,7 +383,7 @@ function ApprovalAnalytics({ requests }: { requests: BusinessRequest[] }) {
           <strong>{pending > 0 ? `${pending} hồ sơ đang chờ xử lý` : "Không có hồ sơ tồn"}</strong>
           <p>{pending > 0 ? "Ưu tiên hồ sơ chấm công và nghỉ phép có ngày áp dụng gần nhất." : "Các luồng đang được xử lý đầy đủ."}</p>
           <div><span>Nguồn dữ liệu</span><b>Approval workspace</b></div>
-          <div><span>Luồng đang theo dõi</span><b>4</b></div>
+          <div><span>Luồng đang theo dõi</span><b>{requestTemplates.length}</b></div>
         </aside>
       </div>
     </section>
@@ -442,6 +443,7 @@ function displayType(type: BusinessRequestType) {
   if (type === "WFH") return "Đơn WFH";
   if (type === "Chi phí") return "Đề nghị chi tiền";
   if (type === "Điều chỉnh chấm công") return "Điều chỉnh Clock-in/out";
+  if (type === "Đăng ký OT") return "Đăng ký OT";
   return type;
 }
 
@@ -452,7 +454,9 @@ function RequestContext({ type }: { type: BusinessRequestType }) {
       ? { icon: Laptop2, title: "Chính sách WFH", copy: "Daily Report được gắn với ngày làm việc từ xa sau khi đơn được duyệt." }
       : type === "Chi phí"
         ? { icon: ReceiptText, title: "Ngữ cảnh kinh phí", copy: "Yêu cầu đi qua quản lý trực tiếp trước bước kiểm tra hạn mức." }
-        : { icon: FileClock, title: "Đối chiếu điểm danh", copy: "Log GPS và thời gian thiết bị được đính kèm để đối chiếu." };
+        : type === "Đăng ký OT"
+          ? { icon: Clock3, title: "Ngữ cảnh làm thêm", copy: "Thời lượng OT đã duyệt sẽ được ghi nhận vào Quỹ thời gian sau khi đối soát chấm công." }
+          : { icon: FileClock, title: "Đối chiếu điểm danh", copy: "Log GPS và thời gian thiết bị được đính kèm để đối chiếu." };
   const Icon = data.icon;
   return <div className="team-context"><div><Icon size={16} strokeWidth={1.5} /><strong>{data.title}</strong></div><p>{data.copy}</p></div>;
 }

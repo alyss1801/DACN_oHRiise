@@ -106,7 +106,6 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
 }
 
 function normalizeModuleId(id: string) {
-  if (id === "schedule") return "attendance";
   if (id === "wfh" || id === "leave" || id === "expenses") return "approvals";
   if (id === "daily-report") return "ai-wfh-session";
   return id;
