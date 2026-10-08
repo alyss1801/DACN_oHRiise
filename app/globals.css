@@ -2826,3 +2826,74 @@ body {
   .approval-data-toolbar label { width: 100%; }
   .approval-data-toolbar select { width: 100%; }
 }
+
+/* AI WFH workflow consolidation */
+.nav-item-cluster { display: grid; }
+.nav-subitems { position: relative; display: grid; gap: 2px; margin: 3px 0 6px 18px; padding-left: 17px; }
+.nav-subitems::before { position: absolute; top: 5px; bottom: 5px; left: 0; width: 1px; background: linear-gradient(180deg, rgba(18,101,232,.42), rgba(0,184,212,.26), rgba(126,214,0,.18)); content: ""; }
+.nav-subitem { position: relative; display: flex; min-height: 34px; align-items: center; justify-content: space-between; gap: 8px; border: 0; border-radius: 8px; background: transparent; padding: 0 8px; color: var(--text-secondary); font-size: 13px; text-align: left; }
+.nav-subitem::before { position: absolute; top: 50%; left: -17px; width: 12px; height: 1px; background: var(--border-strong); content: ""; }
+.nav-subitem:hover { background: var(--surface-hover); color: var(--text-primary); }
+.nav-subitem.is-active { background: rgba(18,101,232,.075); color: #3b82f6; font-weight: 650; }
+.nav-subitem > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-subitem > b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 99px; background: rgba(245,158,11,.12); color: #f59e0b; font-size: 12px; }
+.sidebar.is-collapsed .nav-subitems { display: none; }
+.ai-internal-nav button > b { display: grid; min-width: 20px; height: 20px; place-items: center; margin-left: 2px; border-radius: 99px; background: rgba(245,158,11,.12); color: #f59e0b; font-size: 12px; }
+
+.wfh-workflow-overview { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, .62fr); gap: 14px; }
+.wfh-workflow-card > header, .wfh-report-rules > header, .wfh-session-history > header, .wfh-ai-assessment > header, .wfh-step-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.wfh-workflow-card h2, .wfh-workflow-card p, .wfh-report-rules h2, .wfh-report-rules p, .wfh-session-history h2, .wfh-session-history p, .wfh-ai-assessment h2, .wfh-ai-assessment p, .wfh-step-heading h2, .wfh-step-heading p { margin: 0; }
+.wfh-workflow-card h2, .wfh-report-rules h2, .wfh-session-history h2, .wfh-ai-assessment h2 { font-size: 19px; }
+.wfh-workflow-card header p, .wfh-report-rules header p, .wfh-session-history header p, .wfh-ai-assessment header p, .wfh-step-heading p { margin-top: 5px; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
+.wfh-workflow-steps { display: grid; margin-top: 20px; }
+.wfh-workflow-steps > button { position: relative; display: grid; min-height: 66px; grid-template-columns: 38px minmax(0, 1fr); align-items: start; gap: 12px; border: 0; background: transparent; padding: 4px 0; color: var(--text-primary); text-align: left; }
+.wfh-workflow-steps > button > i { z-index: 1; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--border-strong); border-radius: 11px; background: var(--surface); color: var(--text-secondary); }
+.wfh-workflow-steps > button.done > i { border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.09); color: #22c55e; }
+.wfh-workflow-steps > button.current > i { border-color: rgba(245,158,11,.32); background: rgba(245,158,11,.1); color: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,.04); }
+.wfh-workflow-steps > button.ready > i { border-color: rgba(18,101,232,.3); background: rgba(18,101,232,.09); color: #3b82f6; }
+.wfh-workflow-steps > button > span { display: grid; gap: 5px; padding-top: 1px; }
+.wfh-workflow-steps strong { font-size: 14px; }.wfh-workflow-steps small { color: var(--text-secondary); font-size: 13px; }
+.wfh-workflow-steps em { position: absolute; z-index: 0; top: 40px; bottom: -5px; left: 17px; width: 1px; background: var(--border-strong); }
+.wfh-workflow-steps > button.current { cursor: pointer; }.wfh-workflow-steps > button.current:hover strong { color: #3b82f6; }
+.wfh-rule-table { display: grid; margin: 17px 0; }
+.wfh-rule-table > div { display: grid; min-height: 54px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.wfh-rule-table > div > span { color: var(--text-secondary); font-size: 13px; line-height: 1.4; }
+.wfh-report-rules > .primary-button { width: 100%; justify-content: center; }
+
+.wfh-session-workspace { display: grid; gap: 14px; }
+.wfh-daily-report-step { align-items: start; }
+.wfh-step-heading { border-bottom: 1px solid var(--border); padding-bottom: 17px; }
+.wfh-step-heading > div > span { color: #3b82f6; font-size: 12px; font-weight: 650; }
+.wfh-step-heading h2 { margin-top: 5px; font-size: 22px; letter-spacing: -.025em; }
+.wfh-report-actions { display: flex; gap: 8px; }
+.wfh-ai-boundary { display: flex; align-items: flex-start; gap: 9px; margin-top: 18px; border: 1px solid rgba(18,101,232,.15); border-radius: 11px; background: rgba(18,101,232,.045); padding: 12px; color: #3b82f6; }
+.wfh-ai-boundary p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
+
+.wfh-history-grid { display: grid; grid-template-columns: minmax(340px, .8fr) minmax(0, 1.2fr); gap: 14px; }
+.wfh-session-history > header, .wfh-ai-assessment > header { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.wfh-session-history > header > svg { color: #3b82f6; }
+.wfh-session-history > button { display: grid; width: 100%; min-height: 72px; grid-template-columns: minmax(0, 1fr) auto 18px; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; padding: 10px 0; color: var(--text-secondary); text-align: left; }
+.wfh-session-history > button:hover { color: #3b82f6; }
+.wfh-session-history > button > span:first-child { display: grid; gap: 5px; }.wfh-session-history > button strong { color: var(--text-primary); font-size: 14px; }.wfh-session-history > button small { color: var(--text-secondary); font-size: 12px; }
+.wfh-assessment-result { margin-top: 20px; border-left: 3px solid #00b8d4; padding: 4px 0 4px 14px; }
+.wfh-assessment-result strong { font-size: 17px; }.wfh-assessment-result p { margin-top: 8px; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+.wfh-evidence-sources { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.wfh-evidence-sources span { border: 1px solid var(--border); border-radius: 8px; background: var(--surface-hover); padding: 7px 9px; color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.wfh-ai-assessment .employee-session-note { margin-top: 20px; }
+.wfh-review-boundary { display: flex; align-items: flex-start; gap: 7px; border: 1px solid rgba(245,158,11,.15); border-radius: 9px; background: rgba(245,158,11,.045); padding: 9px; color: #f59e0b; }
+.wfh-review-boundary p { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 980px) {
+  .wfh-workflow-overview, .wfh-history-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .sidebar.is-collapsed .nav-subitems { display: grid; }
+}
+
+@media (max-width: 620px) {
+  .wfh-workflow-card > header, .wfh-report-rules > header, .wfh-session-history > header, .wfh-ai-assessment > header, .wfh-step-heading { flex-direction: column; }
+  .wfh-report-actions { width: 100%; flex-direction: column; }
+  .wfh-report-actions > button { width: 100%; justify-content: center; }
+  .wfh-daily-report-step { grid-template-columns: 1fr; }
+}

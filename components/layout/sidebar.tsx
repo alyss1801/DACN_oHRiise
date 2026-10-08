@@ -3,6 +3,7 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronDown, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { useDemoData } from "@/features/demo/demo-data-context";
 import { useSession } from "@/features/session/session-context";
 import { navigationFor } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ type SidebarProps = {
 
 export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSignOut, collapsed, onToggleCollapsed }: SidebarProps) {
   const { session, personas, setPersona } = useSession();
+  const { wfhReportStatus } = useDemoData();
   const groups = navigationFor(session);
 
   function navigate(id: string) {
@@ -48,12 +50,20 @@ export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSig
               <div className="nav-group-label">{group.label}</div>
               {group.items.map((item) => {
                 const Icon = item.icon;
+                const parentActive = activeId === item.id || item.children?.some((child) => child.id === activeId);
+                const itemBadge = item.id === "ai-wfh" && wfhReportStatus === "submitted" ? undefined : item.badge;
                 return (
-                  <button key={item.id} className={cn("nav-item", activeId === item.id && "is-active")} onClick={() => navigate(item.id)} aria-label={item.label} title={collapsed ? item.label : undefined}>
-                    <Icon size={17} strokeWidth={1.5} />
-                    <span>{item.label}</span>
-                    {item.badge && <b>{item.badge}</b>}
-                  </button>
+                  <div className={cn("nav-item-cluster", parentActive && "is-expanded")} key={item.id}>
+                    <button className={cn("nav-item", parentActive && "is-active")} onClick={() => navigate(item.id)} aria-label={item.label} title={collapsed ? item.label : undefined}>
+                      <Icon size={17} strokeWidth={1.5} />
+                      <span>{item.label}</span>
+                      {itemBadge && <b>{itemBadge}</b>}
+                    </button>
+                    {item.children && parentActive && <div className="nav-subitems">{item.children.map((child) => {
+                      const childBadge = child.id === "ai-wfh-session" && wfhReportStatus === "submitted" ? undefined : child.badge;
+                      return <button key={child.id} className={cn("nav-subitem", activeId === child.id && "is-active")} onClick={() => navigate(child.id)}><span>{child.label}</span>{childBadge && <b>{childBadge}</b>}</button>;
+                    })}</div>}
+                  </div>
                 );
               })}
             </div>

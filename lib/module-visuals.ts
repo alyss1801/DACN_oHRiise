@@ -114,7 +114,10 @@ export const moduleVisuals: Record<string, ModuleVisual> = {
 
 const moduleVisualAliases: Record<string, keyof typeof moduleVisuals> = {
   home: "reports",
-  "daily-report": "reports",
+  "daily-report": "ai-wfh",
+  "ai-wfh-overview": "ai-wfh",
+  "ai-wfh-session": "ai-wfh",
+  "ai-wfh-history": "ai-wfh",
   expenses: "payslip",
   email: "notifications",
   team: "organization",

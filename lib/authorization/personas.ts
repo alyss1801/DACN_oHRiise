@@ -14,7 +14,6 @@ const baseEmployee: PermissionGrant[] = [
   grant("profile", ["view", "edit"], "self", "base"),
   grant("attendance", ["view", "create"], "self", "base"),
   grant("approvals", ["view", "create"], "self", "base"),
-  grant("daily-report", ["view", "create", "edit"], "self", "base"),
   grant("leave", ["view", "create", "edit"], "self", "base"),
   grant("expenses", ["view", "create", "edit"], "self", "base"),
   grant("email", ["view", "create", "edit"], "self", "base"),

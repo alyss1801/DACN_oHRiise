@@ -40,7 +40,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
   const [commandOpen, setCommandOpen] = useState(false);
   const reduceMotion = useReducedMotion();
   const visibleItems = useMemo(() => navigationFor(session).flatMap((group) => group.items), [session]);
-  const activeTitle = visibleItems.find((item) => item.id === activeId)?.label ?? "Truy cập bị giới hạn";
+  const activeTitle = visibleItems.flatMap((item) => [item, ...(item.children ?? [])]).find((item) => item.id === activeId)?.label ?? "Truy cập bị giới hạn";
   const moduleVisual = visualForModule(activeId);
 
   useEffect(() => {
@@ -108,5 +108,6 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
 function normalizeModuleId(id: string) {
   if (id === "schedule") return "attendance";
   if (id === "wfh" || id === "leave" || id === "expenses") return "approvals";
+  if (id === "daily-report") return "ai-wfh-session";
   return id;
 }

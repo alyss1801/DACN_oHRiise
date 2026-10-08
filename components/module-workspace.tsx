@@ -7,7 +7,6 @@ import { can } from "@/lib/authorization/engine";
 import { WorkspaceHeader } from "@/features/employee/workspace-frame";
 import { AttendanceHubWorkspace } from "@/features/employee/attendance-hub-workspace";
 import { ContractWorkspace } from "@/features/employee/contract-workspace";
-import { DailyReportWorkspace } from "@/features/employee/daily-report-workspace";
 import { NotificationsWorkspace } from "@/features/employee/notifications-workspace";
 import { PayslipWorkspace } from "@/features/employee/payslip-workspace";
 import { PerformanceWorkspace } from "@/features/employee/performance-workspace";
@@ -58,6 +57,8 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
     ? "attendance"
     : moduleId === "wfh" || moduleId === "leave" || moduleId === "expenses"
       ? "approvals"
+      : moduleId === "daily-report" || moduleId.startsWith("ai-wfh-")
+        ? "ai-wfh"
       : moduleId;
   const copy = moduleCopy[resolvedModuleId] ?? { eyebrow: "oHRiise", title: "Không gian làm việc", description: "Module đang được xây dựng." };
   const permission = session.permissions.find((item) => item.resource === resolvedModuleId);
@@ -68,7 +69,6 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
 
   if (resolvedModuleId === "profile") return <ProfileWorkspace />;
   if (resolvedModuleId === "attendance") return <AttendanceHubWorkspace />;
-  if (resolvedModuleId === "daily-report") return <DailyReportWorkspace />;
   if (moduleId === "email") return <EmailWorkspace onNavigate={onNavigate} />;
   if (moduleId === "contracts") return <ContractWorkspace />;
   if (moduleId === "offboarding-status") return <OffboardingStatusWorkspace />;
@@ -78,7 +78,7 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (moduleId === "team") return <TeamOverviewWorkspace onNavigate={onNavigate} />;
   if (resolvedModuleId === "approvals") return <ApprovalMiniappWorkspace />;
   if (moduleId === "team-calendar") return <TeamCalendarWorkspace />;
-  if (moduleId === "ai-wfh") return <WfhAiWorkspace />;
+  if (resolvedModuleId === "ai-wfh") return <WfhAiWorkspace personalView={moduleId === "daily-report" || moduleId.startsWith("ai-wfh-")} initialSection={moduleId === "ai-wfh-session" || moduleId === "daily-report" ? "session" : moduleId === "ai-wfh-history" ? "history" : "overview"} onNavigate={onNavigate} />;
   if (moduleId === "employees") return <EmployeesWorkspace />;
   if (moduleId === "onboarding") return <OnboardingWorkspace />;
   if (moduleId === "hr-contracts") return <HrContractsWorkspace />;

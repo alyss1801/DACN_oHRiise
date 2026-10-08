@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 
 export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Chi phí" | "Điều chỉnh chấm công" | "Đổi ca";
 export type BusinessRequestStatus = "pending" | "approved" | "rejected" | "hr-review";
+export type WfhReportStatus = "not-required" | "draft" | "required" | "submitted";
 
 export type BusinessRequest = {
   id: string;
@@ -89,6 +90,8 @@ const initialAudit: AuditEvent[] = [
 type NewBusinessRequest = Omit<BusinessRequest, "id" | "submitted" | "status"> & { idPrefix: string };
 
 type DemoDataContextValue = {
+  wfhReportStatus: WfhReportStatus;
+  setWfhReportStatus: (status: WfhReportStatus) => void;
   requests: BusinessRequest[];
   addBusinessRequest: (request: NewBusinessRequest) => string;
   updateBusinessRequest: (id: string, patch: Pick<BusinessRequest, "date" | "detail">) => void;
@@ -110,6 +113,7 @@ type DemoDataContextValue = {
 const DemoDataContext = createContext<DemoDataContextValue | null>(null);
 
 export function DemoDataProvider({ children }: { children: React.ReactNode }) {
+  const [wfhReportStatus, setWfhReportStatus] = useState<WfhReportStatus>("required");
   const [requests, setRequests] = useState(initialRequests);
   const [accounts, setAccounts] = useState(initialAccounts);
   const [selectedAccountId, setSelectedAccountId] = useState(initialAccounts[0].id);
@@ -183,6 +187,8 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
   const value = useMemo<DemoDataContextValue>(() => ({
+    wfhReportStatus,
+    setWfhReportStatus,
     requests,
     addBusinessRequest,
     updateBusinessRequest,
@@ -201,7 +207,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
     addAuditEvent,
   // Functions intentionally close over the latest demo state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [requests, accounts, selectedAccount, accessReviews, auditEvents]);
+  }), [wfhReportStatus, requests, accounts, selectedAccount, accessReviews, auditEvents]);
 
   return <DemoDataContext.Provider value={value}>{children}</DemoDataContext.Provider>;
 }

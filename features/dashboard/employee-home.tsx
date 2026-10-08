@@ -95,7 +95,7 @@ export function EmployeeHome({ onNavigate }: { onNavigate: (id: string) => void 
             <button onClick={() => onNavigate("leave")}><span><PlaneTakeoff size={17} strokeWidth={1.5} /></span>Nghỉ phép</button>
             <button onClick={() => onNavigate("wfh")}><span><Laptop2 size={17} strokeWidth={1.5} /></span>Đăng ký WFH</button>
             <button onClick={() => onNavigate("expenses")}><span><ReceiptText size={17} strokeWidth={1.5} /></span>Khai chi phí</button>
-            <button onClick={() => onNavigate("daily-report")}><span><FileText size={17} strokeWidth={1.5} /></span>Daily Report</button>
+            <button onClick={() => onNavigate("ai-wfh-session")}><span><FileText size={17} strokeWidth={1.5} /></span>Hoàn tất WFH</button>
           </div>
         </article>
 

@@ -210,7 +210,7 @@ export function AttendanceWorkspace({
             <p>Kiểm tra chính sách và gửi yêu cầu WFH.</p>
           </div>
         </button>
-        <button onClick={() => onNavigate("daily-report")}>
+        <button onClick={() => onNavigate("ai-wfh-session")}>
           <span>
             <TimerReset size={17} strokeWidth={1.5} />
           </span>

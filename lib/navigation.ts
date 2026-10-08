@@ -4,7 +4,6 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
-  ClipboardList,
   CircleDollarSign,
   Clock3,
   FileCheck2,
@@ -39,6 +38,13 @@ export type NavItem = {
   resource: string;
   icon: LucideIcon;
   badge?: string;
+  children?: NavSubItem[];
+};
+
+export type NavSubItem = {
+  id: string;
+  label: string;
+  badge?: string;
 };
 
 export type NavGroup = { label: string; items: NavItem[] };
@@ -51,7 +57,6 @@ const registry: NavGroup[] = [
       { id: "profile", label: "Hồ sơ của tôi", resource: "profile", icon: IdCard },
       { id: "attendance", label: "Điểm danh", resource: "attendance", icon: Clock3 },
       { id: "approvals", label: "Phê duyệt", resource: "approvals", icon: FileCheck2, badge: "4" },
-      { id: "daily-report", label: "Daily Report", resource: "daily-report", icon: ClipboardList },
     ],
   },
   {
@@ -90,7 +95,18 @@ const registry: NavGroup[] = [
     label: "Không gian AI",
     items: [
       { id: "ai-cv", label: "AI CV Intelligence", resource: "ai-cv", icon: Bot },
-      { id: "ai-wfh", label: "WFH Intelligence", resource: "ai-wfh", icon: Sparkles },
+      {
+        id: "ai-wfh",
+        label: "AI WFH",
+        resource: "ai-wfh",
+        icon: Sparkles,
+        badge: "1",
+        children: [
+          { id: "ai-wfh-overview", label: "Tổng quan WFH" },
+          { id: "ai-wfh-session", label: "Phiên làm việc của tôi", badge: "1" },
+          { id: "ai-wfh-history", label: "Lịch sử & đánh giá AI" },
+        ],
+      },
     ],
   },
   {

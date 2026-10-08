@@ -4,8 +4,10 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, Clock3, Eye, FileCheck2, Filter, History, LayoutDashboard, LockKeyhole, MessageSquareText, Monitor, Search, ShieldCheck, Trash2, UserCheck, UsersRound } from "lucide-react";
 import { toast } from "sonner";
+import { useDemoData } from "@/features/demo/demo-data-context";
 import { FormField, StatusPill, WorkflowDialog, WorkspaceHeader } from "@/features/employee/workspace-frame";
 import { useSession } from "@/features/session/session-context";
+import { WfhDailyReportStep } from "@/features/team/wfh-daily-report-step";
 
 type Evidence = { time: string; app: string; detail: string; confidence: number; tone: "high" | "low"; task: string };
 type WfhCase = { initials: string; name: string; team: string; score: number; coverage: number; report: string[]; missing: string; evidence: Evidence[]; consent: string; reviewer: string; priority: "Cao" | "Trung bình"; status: "Chờ review" | "Đang review" | "Đã xử lý" };
@@ -28,9 +30,9 @@ const nav: Array<{ id: WfhSection; label: string; icon: typeof LayoutDashboard }
   { id: "overview", label: "Overview", icon: LayoutDashboard }, { id: "queue", label: "Review Queue", icon: FileCheck2 }, { id: "employees", label: "Employees", icon: UsersRound }, { id: "case", label: "Case Review", icon: Search }, { id: "history", label: "Decision Log", icon: History }, { id: "privacy", label: "Privacy & Access", icon: LockKeyhole },
 ];
 
-export function WfhAiWorkspace() {
+export function WfhAiWorkspace({ initialSection = "overview", personalView = false, onNavigate }: { initialSection?: "overview" | "session" | "history"; personalView?: boolean; onNavigate?: (id: string) => void }) {
   const { can } = useSession();
-  return can("ai-wfh", "edit") ? <WfhReviewerWorkspace /> : <EmployeeWfhIntelligence />;
+  return can("ai-wfh", "edit") && !personalView ? <WfhReviewerWorkspace /> : <EmployeeWfhIntelligence initialSection={initialSection} onNavigate={onNavigate} />;
 }
 
 function WfhReviewerWorkspace() {
@@ -57,7 +59,7 @@ function WfhReviewerWorkspace() {
   function resolveCase(outcome: string) { setCases((current) => current.map((item) => item.name === selected.name ? { ...item, status: outcome === "Đã xử lý" ? "Đã xử lý" : "Đang review" } : item)); record(outcome === "Đã xử lý" ? "Case resolved" : "Employee clarification requested", selected.name); toast.success(outcome === "Đã xử lý" ? "Case đã được xử lý bởi con người." : "Đã gửi yêu cầu làm rõ."); }
 
   return <div className="ai-product-shell wfh-product">
-    <WorkspaceHeader title="WFH Intelligence" subtitle="Human Review & Evidence Analysis · 07/10/2026" action={<div className="ai-product-actions"><StatusPill tone="warning"><UserCheck size={14} /> Human review required</StatusPill><button className="primary-button" onClick={() => setSection("queue")}>Mở Review Queue</button></div>} />
+    <WorkspaceHeader title="AI WFH" subtitle="Human Review & Evidence Analysis · 07/10/2026" action={<div className="ai-product-actions"><StatusPill tone="warning"><UserCheck size={14} /> Human review required</StatusPill><button className="primary-button" onClick={() => setSection("queue")}>Mở Review Queue</button></div>} />
     <nav className="ai-internal-nav" aria-label="Điều hướng WFH Intelligence">{nav.map((item) => { const Icon = item.icon; return <button className={section === item.id ? "is-active" : ""} key={item.id} onClick={() => setSection(item.id)}><Icon size={15} /><span>{item.label}</span></button>; })}</nav>
 
     {section === "overview" && <section className="ai-overview-compact"><div className="ai-activity-strip"><div><strong>3</strong><span>Active sessions</span></div><div><strong>92%</strong><span>Evidence coverage</span></div><div><strong>1</strong><span>Needs context</span></div></div><div className="ai-overview-actions"><button className="primary-button" onClick={() => setSection("queue")}>Review low-confidence case</button><button className="secondary-button" onClick={() => openCase(seedCases[0].name)}>Mở employee session</button></div></section>}
@@ -77,19 +79,40 @@ function WfhReviewerWorkspace() {
   </div>;
 }
 
-function EmployeeWfhIntelligence() {
-  const [section, setSection] = useState<"overview" | "session" | "privacy">("overview");
+function EmployeeWfhIntelligence({ initialSection, onNavigate }: { initialSection: "overview" | "session" | "history"; onNavigate?: (id: string) => void }) {
+  const { wfhReportStatus } = useDemoData();
+  const [section, setSection] = useState<"overview" | "session" | "history">(initialSection);
   const employeeNav = [
-    { id: "overview" as const, label: "Tổng quan", icon: LayoutDashboard },
-    { id: "session" as const, label: "Phiên của tôi", icon: Monitor },
-    { id: "privacy" as const, label: "Quyền riêng tư", icon: LockKeyhole },
+    { id: "overview" as const, label: "Tổng quan WFH", icon: LayoutDashboard },
+    { id: "session" as const, label: "Phiên làm việc của tôi", icon: Monitor, badge: wfhReportStatus === "submitted" ? undefined : "1" },
+    { id: "history" as const, label: "Lịch sử & đánh giá AI", icon: History },
   ];
+  function navigateSection(next: "overview" | "session" | "history") {
+    setSection(next);
+    onNavigate?.(`ai-wfh-${next}`);
+  }
 
   return <div className="ai-product-shell wfh-product employee-wfh-intelligence">
-    <WorkspaceHeader title="WFH Intelligence" action={<div className="ai-product-actions"><StatusPill tone="success"><LockKeyhole size={14} /> Self scope</StatusPill></div>} />
-    <nav className="ai-internal-nav" aria-label="Điều hướng WFH Intelligence cá nhân">{employeeNav.map((item) => { const Icon = item.icon; return <button className={section === item.id ? "is-active" : ""} key={item.id} onClick={() => setSection(item.id)}><Icon size={15} /><span>{item.label}</span></button>; })}</nav>
-    {section === "overview" && <section className="ai-overview-compact"><div className="ai-activity-strip"><div><strong>Đã hoàn tất</strong><span>Phiên 02/10/2026</span></div><div><strong>6</strong><span>Tín hiệu công việc</span></div><div><strong>30 ngày</strong><span>Thời hạn lưu giữ</span></div></div><div className="ai-overview-actions"><button className="primary-button" onClick={() => setSection("session")}>Xem phiên gần nhất</button><button className="secondary-button" onClick={() => setSection("privacy")}>Chính sách riêng tư</button></div></section>}
-    {section === "session" && <section className="employee-session-summary"><header><div><span className="eyebrow">02/10/2026 · WFH CẢ NGÀY</span><h2>Phiên làm việc của Nguyễn Thu Hà</h2><p>08:31–17:46 · Daily Report đã gửi 17:42</p></div><StatusPill tone="success"><Check size={13} /> Đã hoàn tất</StatusPill></header><div className="employee-signal-timeline">{[["08:31","Bắt đầu phiên","Consent active · HCM-Q1"],["09:18","Figma","Employee flow · tín hiệu công việc"],["11:06","Google Meet","Design review · lịch nội bộ"],["14:22","Notion","Cập nhật component documentation"],["17:42","Daily Report","3/3 đầu việc đã báo cáo"],["17:46","Kết thúc phiên","Không có mục cần làm rõ"]].map((event, index) => <div key={event[0]}><time>{event[0]}</time><i className={index === 5 ? "done" : ""} /><span><strong>{event[1]}</strong><small>{event[2]}</small></span></div>)}</div><div className="employee-session-note"><ShieldCheck size={17} /><p>Đây là bản tóm tắt của chính bạn. Ảnh bằng chứng gốc và công cụ review nâng cao chỉ dành cho reviewer được phân quyền.</p></div></section>}
-    {section === "privacy" && <section className="privacy-command-center"><header><ShieldCheck size={24} /><div><span className="eyebrow">PRIVACY & CONSENT</span><h2>Dữ liệu WFH của bạn</h2><p>Chính sách áp dụng rõ ràng trước khi phiên bắt đầu.</p></div></header><div className="privacy-policy-grid"><div><UserCheck size={18} /><span><strong>Consent</strong><small>Xác nhận trước mỗi phiên được duyệt</small></span><StatusPill tone="success">Active</StatusPill></div><div><Monitor size={18} /><span><strong>Dữ liệu được ghi nhận</strong><small>Ứng dụng công việc, timestamp, ảnh đã blur</small></span><b>Giới hạn</b></div><div><Clock3 size={18} /><span><strong>Retention</strong><small>Tự động xóa bằng chứng</small></span><b>30 ngày</b></div><div><Eye size={18} /><span><strong>Người có thể truy cập</strong><small>Team Lead được phân công hoặc HR reviewer</small></span><b>Có audit</b></div></div><div className="employee-session-note"><LockKeyhole size={17} /><p>Không ghi phím, không đọc nội dung cá nhân và không dùng confidence thấp để tự động kết luận hành vi.</p></div></section>}
+    <WorkspaceHeader title="AI WFH" subtitle={wfhReportStatus === "submitted" ? "Phiên WFH gần nhất đã hoàn tất" : "1 phiên WFH đang chờ Daily Report"} action={<div className="ai-product-actions"><StatusPill tone={wfhReportStatus === "submitted" ? "success" : "warning"}><LockKeyhole size={14} /> {wfhReportStatus === "submitted" ? "Đã hoàn tất" : "Cần hoàn tất"}</StatusPill></div>} />
+    <nav className="ai-internal-nav" aria-label="Điều hướng AI WFH cá nhân">{employeeNav.map((item) => { const Icon = item.icon; return <button className={section === item.id ? "is-active" : ""} key={item.id} onClick={() => navigateSection(item.id)}><Icon size={15} /><span>{item.label}</span>{item.badge && <b>{item.badge}</b>}</button>; })}</nav>
+    {section === "overview" && <section className="wfh-workflow-overview"><div className="panel wfh-workflow-card"><header><div><h2>Quy trình AI WFH Monitoring</h2><p>Daily Report là bước nghiệp vụ của phiên WFH, không phải module quản lý công việc độc lập.</p></div><StatusPill tone={wfhReportStatus === "submitted" ? "success" : "warning"}>{wfhReportStatus === "submitted" ? "Hoàn tất" : "Còn 1 bước"}</StatusPill></header><div className="wfh-workflow-steps">{[
+      { title: "Đăng ký & được duyệt WFH", detail: "WFH-2026-095 · Đã duyệt", icon: FileCheck2, state: "done" },
+      { title: "Check-in WFH", detail: "08:31 · Consent active", icon: UserCheck, state: "done" },
+      { title: "AI Monitoring", detail: "Nhiều nguồn tín hiệu · chính sách giới hạn", icon: Monitor, state: "done" },
+      { title: "Khai báo Daily Report", detail: wfhReportStatus === "submitted" ? "Đã nộp 17:42" : wfhReportStatus === "draft" ? "Đã lưu bản nháp" : "Cần nộp sau khi kết thúc phiên", icon: MessageSquareText, state: wfhReportStatus === "submitted" ? "done" : "current" },
+      { title: "AI tổng hợp & Team Lead xem xét", detail: wfhReportStatus === "submitted" ? "Sẵn sàng tạo nhận định tham khảo" : "Chờ Daily Report", icon: Search, state: wfhReportStatus === "submitted" ? "ready" : "waiting" },
+    ].map((step, index) => { const Icon = step.icon; return <button key={step.title} className={step.state} onClick={() => index === 3 && navigateSection("session")}><i><Icon size={17} strokeWidth={1.5} /></i><span><strong>{step.title}</strong><small>{step.detail}</small></span>{index < 4 && <em />}</button>; })}</div></div><div className="panel wfh-report-rules"><header><h2>Khi nào cần Daily Report?</h2><p>Yêu cầu thay đổi theo trạng thái ngày làm việc.</p></header><div className="wfh-rule-table">{[
+      ["Làm việc tại văn phòng", "Không yêu cầu", "neutral"],
+      ["WFH đã duyệt, chưa bắt đầu", "Chưa cần khai báo", "neutral"],
+      ["Đang trong phiên WFH", "Cho phép lưu nháp", "blue"],
+      ["Kết thúc phiên WFH", wfhReportStatus === "submitted" ? "Đã nộp báo cáo" : "Yêu cầu nộp báo cáo", wfhReportStatus === "submitted" ? "success" : "warning"],
+      ["Nghỉ phép / ngày nghỉ", "Không yêu cầu", "neutral"],
+    ].map((row) => <div key={row[0]}><span>{row[0]}</span><StatusPill tone={row[2] as "neutral" | "blue" | "success" | "warning"}>{row[1]}</StatusPill></div>)}</div><button className="primary-button" onClick={() => navigateSection("session")}>{wfhReportStatus === "submitted" ? "Xem phiên làm việc" : "Hoàn tất Daily Report"}</button></div></section>}
+    {section === "session" && <section className="wfh-session-workspace"><article className="employee-session-summary"><header><div><span className="eyebrow">07/10/2026 · WFH CẢ NGÀY</span><h2>Phiên làm việc của Nguyễn Thu Hà</h2><p>08:31–17:30 · WFH-2026-095</p></div><StatusPill tone={wfhReportStatus === "submitted" ? "success" : "warning"}>{wfhReportStatus === "submitted" ? <><Check size={13} /> Đã hoàn tất</> : <><Clock3 size={13} /> Chờ Daily Report</>}</StatusPill></header><div className="employee-signal-timeline">{[["08:31","Bắt đầu phiên","Consent active · HCM-Q1"],["09:18","Figma","Employee flow · tín hiệu công việc"],["11:06","Google Meet","Design review · lịch nội bộ"],["14:22","Notion","Cập nhật component documentation"],["17:30","Kết thúc phiên","Daily Report được yêu cầu"]].map((event, index) => <div key={event[0]}><time>{event[0]}</time><i className={index === 4 ? "done" : ""} /><span><strong>{event[1]}</strong><small>{event[2]}</small></span></div>)}{wfhReportStatus === "submitted" && <div><time>17:42</time><i className="done" /><span><strong>Daily Report</strong><small>Đã gắn vào phiên WFH để AI đối chiếu</small></span></div>}</div><div className="employee-session-note"><ShieldCheck size={17} /><p>Hệ thống ghi nhận nhiều loại tín hiệu. Screenshot không đại diện đầy đủ cho thời gian suy nghĩ, họp hoặc trao đổi ngoài màn hình.</p></div></article><WfhDailyReportStep /></section>}
+    {section === "history" && <section className="wfh-history-grid"><article className="panel wfh-session-history"><header><div><h2>Lịch sử phiên WFH</h2><p>Các phiên đã được duyệt và trạng thái Daily Report.</p></div><History size={20} strokeWidth={1.5} /></header>{[
+      { date: "07/10/2026", time: "08:31–17:30", report: wfhReportStatus === "submitted" ? "Đã nộp" : "Cần nộp", tone: wfhReportStatus === "submitted" ? "success" : "warning" },
+      { date: "02/10/2026", time: "08:31–17:46", report: "Đã đánh giá", tone: "success" },
+      { date: "25/09/2026", time: "08:28–17:35", report: "Đã đánh giá", tone: "success" },
+    ].map((item) => <button key={item.date}><span><strong>{item.date}</strong><small>{item.time} · WFH cả ngày</small></span><StatusPill tone={item.tone as "success" | "warning"}>{item.report}</StatusPill><Eye size={15} strokeWidth={1.5} /></button>)}</article><article className="panel wfh-ai-assessment"><header><div><h2>Đánh giá AI gần nhất</h2><p>Phiên 02/10/2026 · nhận định tham khảo</p></div><StatusPill tone="blue">86% tin cậy</StatusPill></header><div className="wfh-assessment-result"><strong>Hoạt động nhìn chung phù hợp với Daily Report</strong><p>Có tín hiệu liên quan đến 3/3 đầu việc đã khai báo. Một khoảng thời gian họp không có screenshot nhưng được đối chiếu bằng lịch Google Meet.</p></div><div className="wfh-evidence-sources"><span>Daily Report</span><span>Ứng dụng công việc</span><span>Lịch họp</span><span>Timeline phiên WFH</span></div><div className="employee-session-note"><ShieldCheck size={17} /><p>AI không tự động kết luận vi phạm. Team Lead xem bằng chứng, độ tin cậy và ngữ cảnh trước khi đưa ra quyết định.</p></div></article></section>}
   </div>;
 }
