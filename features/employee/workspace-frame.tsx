@@ -3,7 +3,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { createContext } from "react";
 import { X } from "lucide-react";
-import { BrandPageDivider } from "@/components/brand-page-divider";
+import { ScopeFilter } from "@/components/scope-filter";
+import { useSession } from "@/features/session/session-context";
 import { cn } from "@/lib/utils";
 
 const ModuleVisualContext = createContext("home");
@@ -19,10 +20,16 @@ export function WorkspaceHeader({ title, subtitle, action }: {
   subtitle?: React.ReactNode;
   action?: React.ReactNode;
 }) {
+  const { availableDataScopes } = useSession();
+  const showScopeFilter = availableDataScopes.length > 1;
+  if (!subtitle && !action && !showScopeFilter) return null;
+
   return (
     <section className="module-action-strip" aria-label={`Tác vụ ${title}`}>
-      <BrandPageDivider />
-      {(subtitle || action) && <div className="module-action-row">{subtitle && <p>{subtitle}</p>}{action && <div className="module-intro-action">{action}</div>}</div>}
+      <div className="module-action-row">
+        {subtitle && <p>{subtitle}</p>}
+        {(action || showScopeFilter) && <div className="module-intro-action"><ScopeFilter />{action}</div>}
+      </div>
     </section>
   );
 }

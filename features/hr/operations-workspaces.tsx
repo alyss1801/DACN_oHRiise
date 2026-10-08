@@ -22,36 +22,49 @@ import {
   WorkspaceHeader,
 } from "@/features/employee/workspace-frame";
 import { useSession } from "@/features/session/session-context";
+import { canAccessScopedRecord } from "@/lib/authorization/engine";
 
 const attendanceRows = [
   {
+    employeeId: "OH-0266",
     name: "Võ Thu Linh",
     initials: "TL",
     branch: "HCM-Q1",
+    department: "Nhân sự",
+    team: "HR Operations",
     checkIn: "09:12",
     issue: "Đi muộn 42 phút",
     status: "open",
   },
   {
+    employeeId: "OH-0218",
     name: "Phạm Gia Bảo",
     initials: "GB",
     branch: "HCM-TD",
+    department: "Công nghệ thông tin",
+    team: "Data Platform",
     checkIn: "--:--",
     issue: "Thiếu check-in",
     status: "open",
   },
   {
+    employeeId: "OH-0204",
     name: "Lê Hoàng Đức",
     initials: "LĐ",
     branch: "HN-CG",
+    department: "Kinh doanh",
+    team: "Sales North",
     checkIn: "08:19",
     issue: "GPS ngoài bán kính",
     status: "review",
   },
   {
+    employeeId: "OH-0248",
     name: "Nguyễn Thu Hà",
     initials: "NH",
     branch: "HCM-Q1",
+    department: "Sản phẩm",
+    team: "Data Platform",
     checkIn: "08:42",
     issue: "Không có",
     status: "ok",
@@ -59,10 +72,11 @@ const attendanceRows = [
 ];
 
 export function AttendanceMonitoringWorkspace() {
-  const { can } = useSession();
+  const { can, session } = useSession();
   const [query, setQuery] = useState("");
   const visible = attendanceRows.filter((row) =>
-    row.name.toLowerCase().includes(query.toLowerCase()),
+    canAccessScopedRecord(session, row)
+    && row.name.toLowerCase().includes(query.toLowerCase()),
   );
   return (
     <div className="page-stack">
@@ -613,11 +627,13 @@ function Pipeline({
 }
 
 export function ReportsWorkspace() {
-  const { can } = useSession();
+  const { can, session } = useSession();
   const [range, setRange] = useState("6 tháng");
   const [branch, setBranch] = useState("all");
   const [department, setDepartment] = useState("all");
-  const scopeLabel = `${branch === "all" ? "Toàn công ty" : branch} · ${department === "all" ? "Tất cả phòng ban" : department}`;
+  const scopedBranch = (session.effectiveScope === "self" || session.effectiveScope === "branch") && session.branch !== "Toàn công ty" ? session.branch : branch;
+  const scopedDepartment = (session.effectiveScope === "self" || session.effectiveScope === "department") ? session.department : department;
+  const scopeLabel = `${scopedBranch === "all" ? "Toàn công ty" : scopedBranch} · ${scopedDepartment === "all" ? "Tất cả phòng ban" : scopedDepartment}`;
   return (
     <div className="page-stack">
       <WorkspaceHeader
@@ -646,8 +662,9 @@ export function ReportsWorkspace() {
         <select
           className="filter-select"
           aria-label="Chi nhánh báo cáo"
-          value={branch}
+          value={scopedBranch}
           onChange={(event) => setBranch(event.target.value)}
+          disabled={scopedBranch !== branch}
         >
           <option value="all">Tất cả chi nhánh</option>
           <option>HCM-Q1</option>
@@ -658,8 +675,9 @@ export function ReportsWorkspace() {
         <select
           className="filter-select"
           aria-label="Phòng ban báo cáo"
-          value={department}
+          value={scopedDepartment}
           onChange={(event) => setDepartment(event.target.value)}
+          disabled={scopedDepartment !== department}
         >
           <option value="all">Tất cả phòng ban</option>
           <option>Công nghệ thông tin</option>
