@@ -22,8 +22,9 @@ import { AiCvWorkspace } from "@/features/hr/ai-cv-workspace";
 import { HrContractsWorkspace, OnboardingWorkspace } from "@/features/hr/lifecycle-workspaces";
 import { EmployeesWorkspace, OffboardingWorkspace, OrganizationWorkspace } from "@/features/hr/people-workspaces";
 import { AttendanceMonitoringWorkspace, ExpenseReviewWorkspace, MisaSyncWorkspace, ReportsWorkspace, TimesheetsWorkspace } from "@/features/hr/operations-workspaces";
-import { AccessReviewsWorkspace, AccountsWorkspace, AuditWorkspace, DelegationWorkspace, PermissionsWorkspace } from "@/features/admin/access-workspaces";
+import { AuditWorkspace } from "@/features/admin/access-workspaces";
 import { AdminOverviewWorkspace, AiGovernanceWorkspace, BranchesWorkspace, CatalogsWorkspace, EmailDlpWorkspace, IntegrationsWorkspace, NotificationConfigWorkspace } from "@/features/admin/system-workspaces";
+import { IamWorkspace } from "@/features/admin/iam/iam-workspace";
 
 const moduleCopy: Record<string, { eyebrow: string; title: string; description: string; action?: string }> = {
   profile: { eyebrow: "HỒ SƠ CÁ NHÂN", title: "Thông tin của Nguyễn Thu Hà", description: "Thông tin được hiển thị theo chính sách trường nhạy cảm.", action: "Cập nhật hồ sơ" },
@@ -54,7 +55,10 @@ const moduleCopy: Record<string, { eyebrow: string; title: string; description: 
 
 export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: string; onHome: () => void; onNavigate: (id: string) => void }) {
   const { session, fieldVisibility } = useSession();
-  const resolvedModuleId = moduleId === "schedule"
+  const isAccessWorkspace = moduleId.startsWith("access/");
+  const resolvedModuleId = isAccessWorkspace
+    ? "accounts"
+    : moduleId === "schedule"
     ? "attendance"
     : moduleId === "wfh" || moduleId === "leave" || moduleId === "expenses"
       ? "approvals"
@@ -67,6 +71,8 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (!permission || !can(session, resolvedModuleId)) {
     return <AccessDenied onHome={onHome} />;
   }
+
+  if (isAccessWorkspace) return <IamWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
 
   if (resolvedModuleId === "profile") return <ProfileWorkspace />;
   if (moduleId === "schedule") return <ScheduleTimeFundWorkspace />;
@@ -94,10 +100,6 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (moduleId === "ai-cv") return <AiCvWorkspace />;
   if (moduleId === "admin-overview") return <AdminOverviewWorkspace onNavigate={onNavigate} />;
   if (moduleId === "branches-gps") return <BranchesWorkspace />;
-  if (moduleId === "accounts") return <AccountsWorkspace onNavigate={onNavigate} />;
-  if (moduleId === "permissions") return <PermissionsWorkspace />;
-  if (moduleId === "access-reviews") return <AccessReviewsWorkspace />;
-  if (moduleId === "delegation") return <DelegationWorkspace />;
   if (moduleId === "catalogs") return <CatalogsWorkspace />;
   if (moduleId === "email-dlp") return <EmailDlpWorkspace />;
   if (moduleId === "notification-config") return <NotificationConfigWorkspace />;
