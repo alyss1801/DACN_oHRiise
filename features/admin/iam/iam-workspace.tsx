@@ -3,7 +3,8 @@
 import { FileCheck2, KeyRound, ShieldCheck, UserRoundCog, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssignmentWorkspace } from "./assignment-workspace";
-import { DeferredView } from "./iam-ui";
+import { DelegationWorkspace } from "./delegation-workspace";
+import { ReviewWorkspace } from "./review-workspace";
 import { TemplateWorkspace } from "./template-workspace";
 import { UserWorkspace } from "./user-workspace";
 
@@ -28,7 +29,7 @@ export function IamWorkspace({ moduleId, onNavigate }: { moduleId: string; onNav
     {section === "users" && <UserWorkspace moduleId={moduleId} onNavigate={onNavigate} />}
     {section === "templates" && <TemplateWorkspace moduleId={moduleId} onNavigate={onNavigate} />}
     {section === "assignments" && <AssignmentWorkspace moduleId={moduleId} onNavigate={onNavigate} />}
-    {section === "reviews" && <DeferredView title="Rà soát truy cập" description="Chu kỳ rà soát, chứng nhận quyền và nhắc việc cho quản lý sẽ được triển khai sau." />}
-    {section === "delegation" && <DeferredView title="Ủy quyền tạm thời" description="Ủy quyền có thời hạn, quy trình phê duyệt và thu hồi tự động sẽ được triển khai sau." />}
+    {section === "reviews" && <ReviewWorkspace moduleId={moduleId} onNavigate={onNavigate} />}
+    {section === "delegation" && <DelegationWorkspace moduleId={moduleId} onNavigate={onNavigate} />}
   </div>;
 }

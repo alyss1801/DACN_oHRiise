@@ -2,12 +2,20 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { initialAccounts, initialAuditEvents, initialTemplates, permissionCatalog } from "./mock-data";
-import type { AccessTemplate, Account, AssignmentDraft, AuditEvent, EffectivePermission, PermissionOverride, TemplateDraft } from "./types";
+import { initialAccessReviews, initialTemporaryDelegations } from "./governance-mock-data";
+import type { AccessReview, AccessTemplate, Account, AssignmentDraft, AuditEvent, EffectivePermission, PermissionOverride, ReviewDecision, TemporaryDelegation, TemplateDraft } from "./types";
 
 type IamContextValue = {
   accounts: Account[];
   templates: AccessTemplate[];
   auditEvents: AuditEvent[];
+  accessReviews: AccessReview[];
+  temporaryDelegations: TemporaryDelegation[];
+  createAccessReview: (input: Omit<AccessReview, "id" | "createdAt" | "status">) => string;
+  decideReviewItem: (reviewId: string, itemId: string, decision: ReviewDecision, note: string) => void;
+  completeAccessReview: (reviewId: string) => boolean;
+  createDelegation: (input: Omit<TemporaryDelegation, "id" | "createdAt" | "status" | "decidedAt">) => string;
+  decideDelegation: (id: string, status: "approved" | "rejected" | "revoked") => void;
   assignmentDraft: AssignmentDraft | null;
   templateDraft: TemplateDraft | null;
   hasUnsavedDraft: boolean;
@@ -32,8 +40,43 @@ export function IamProvider({ children }: { children: React.ReactNode }) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [templates, setTemplates] = useState(initialTemplates);
   const [auditEvents, setAuditEvents] = useState(initialAuditEvents);
+  const [accessReviews, setAccessReviews] = useState(initialAccessReviews);
+  const [temporaryDelegations, setTemporaryDelegations] = useState(initialTemporaryDelegations);
   const [assignmentDraft, setAssignmentDraft] = useState<AssignmentDraft | null>(null);
   const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null);
+
+  const createAccessReview = useCallback((input: Omit<AccessReview, "id" | "createdAt" | "status">) => {
+    const id = `review-${crypto.randomUUID()}`;
+    setAccessReviews((current) => [{ ...input, id, createdAt: new Date().toISOString().slice(0, 10), status: "open" }, ...current]);
+    setAuditEvents((current) => [{ id: `audit-${crypto.randomUUID()}`, actor: "Quản trị viên (demo)", action: "Tạo đợt rà soát truy cập", timestamp: new Date().toLocaleString("vi-VN"), previousValue: "—", newValue: input.title }, ...current]);
+    return id;
+  }, []);
+
+  const decideReviewItem = useCallback((reviewId: string, itemId: string, decision: ReviewDecision, note: string) => {
+    setAccessReviews((current) => current.map((review) => review.id === reviewId && review.status === "open" ? { ...review, items: review.items.map((item) => item.id === itemId ? { ...item, decision, note: note.trim() } : item) } : review));
+  }, []);
+
+  const completeAccessReview = useCallback((reviewId: string) => {
+    const review = accessReviews.find((item) => item.id === reviewId);
+    if (!review || review.status !== "open" || review.items.some((item) => !item.decision)) return false;
+    setAccessReviews((current) => current.map((item) => item.id === reviewId ? { ...item, status: "completed" } : item));
+    setAuditEvents((current) => [{ id: `audit-${crypto.randomUUID()}`, actor: "Quản trị viên (demo)", action: "Hoàn tất rà soát truy cập", timestamp: new Date().toLocaleString("vi-VN"), previousValue: "Đang rà soát", newValue: `${review.title} · ${review.items.filter((item) => item.decision === "revoke").length} đề xuất thu hồi` }, ...current]);
+    return true;
+  }, [accessReviews]);
+
+  const createDelegation = useCallback((input: Omit<TemporaryDelegation, "id" | "createdAt" | "status" | "decidedAt">) => {
+    const id = `delegation-${crypto.randomUUID()}`;
+    setTemporaryDelegations((current) => [{ ...input, id, status: "pending", createdAt: new Date().toISOString().slice(0, 10) }, ...current]);
+    setAuditEvents((current) => [{ id: `audit-${crypto.randomUUID()}`, delegationId: id, accountId: input.toId, actor: "Quản trị viên (demo)", action: "Tạo yêu cầu ủy quyền", timestamp: new Date().toLocaleString("vi-VN"), previousValue: "—", newValue: input.permissionCode }, ...current]);
+    return id;
+  }, []);
+
+  const decideDelegation = useCallback((id: string, status: "approved" | "rejected" | "revoked") => {
+    const target = temporaryDelegations.find((item) => item.id === id);
+    if (!target || (status === "revoked" ? target.status !== "approved" : target.status !== "pending")) return;
+    setTemporaryDelegations((current) => current.map((item) => item.id === id ? { ...item, status, decidedAt: new Date().toISOString().slice(0, 10) } : item));
+    setAuditEvents((current) => [{ id: `audit-${crypto.randomUUID()}`, delegationId: id, accountId: target.toId, actor: "Quản trị viên (demo)", action: status === "approved" ? "Phê duyệt ủy quyền" : status === "rejected" ? "Từ chối ủy quyền" : "Thu hồi ủy quyền", timestamp: new Date().toLocaleString("vi-VN"), previousValue: target.status, newValue: status }, ...current]);
+  }, [temporaryDelegations]);
 
   const updateAccount = useCallback((id: string, patch: Partial<Account>) => {
     setAccounts((current) => current.map((account) => account.id === id ? { ...account, ...patch } : account));
@@ -170,7 +213,7 @@ export function IamProvider({ children }: { children: React.ReactNode }) {
     return JSON.stringify({ t: assignmentDraft.templateIds, o: assignmentDraft.overrides, s: assignmentDraft.scope }) !== JSON.stringify({ t: assignmentDraft.baselineTemplateIds, o: assignmentDraft.baselineOverrides, s: assignmentDraft.baselineScope });
   }, [assignmentDraft, templateDraft, templates]);
 
-  const value = useMemo<IamContextValue>(() => ({ accounts, templates, auditEvents, assignmentDraft, templateDraft, hasUnsavedDraft, updateAccount, createAccount, startAssignment, updateAssignment, discardAssignment, applyAssignment, startTemplateDraft, updateTemplateDraft, discardTemplateDraft, saveTemplateDraft, cloneTemplate, toggleTemplateStatus, effectivePermissions }), [accounts, templates, auditEvents, assignmentDraft, templateDraft, hasUnsavedDraft, updateAccount, createAccount, startAssignment, updateAssignment, discardAssignment, applyAssignment, startTemplateDraft, updateTemplateDraft, discardTemplateDraft, saveTemplateDraft, cloneTemplate, toggleTemplateStatus, effectivePermissions]);
+  const value = useMemo<IamContextValue>(() => ({ accounts, templates, auditEvents, accessReviews, temporaryDelegations, createAccessReview, decideReviewItem, completeAccessReview, createDelegation, decideDelegation, assignmentDraft, templateDraft, hasUnsavedDraft, updateAccount, createAccount, startAssignment, updateAssignment, discardAssignment, applyAssignment, startTemplateDraft, updateTemplateDraft, discardTemplateDraft, saveTemplateDraft, cloneTemplate, toggleTemplateStatus, effectivePermissions }), [accounts, templates, auditEvents, accessReviews, temporaryDelegations, createAccessReview, decideReviewItem, completeAccessReview, createDelegation, decideDelegation, assignmentDraft, templateDraft, hasUnsavedDraft, updateAccount, createAccount, startAssignment, updateAssignment, discardAssignment, applyAssignment, startTemplateDraft, updateTemplateDraft, discardTemplateDraft, saveTemplateDraft, cloneTemplate, toggleTemplateStatus, effectivePermissions]);
   return <IamContext.Provider value={value}>{children}</IamContext.Provider>;
 }
 

@@ -63,6 +63,7 @@ export type AuditEvent = {
   id: string;
   accountId?: string;
   templateId?: string;
+  delegationId?: string;
   actor: string;
   action: string;
   timestamp: string;
@@ -91,4 +92,39 @@ export type EffectivePermission = {
   sources: string[];
   override: PermissionOverride;
   protected: boolean;
+};
+
+export type ReviewDecision = "keep" | "revoke";
+export type AccessReviewItem = {
+  id: string;
+  accountId: string;
+  templateId: string;
+  decision?: ReviewDecision;
+  note?: string;
+};
+export type AccessReview = {
+  id: string;
+  title: string;
+  reviewerId: string;
+  branch: string;
+  department: string;
+  dueDate: string;
+  createdAt: string;
+  status: "open" | "completed";
+  items: AccessReviewItem[];
+};
+
+export type TemporaryDelegation = {
+  id: string;
+  fromId: string;
+  toId: string;
+  permissionCode: string;
+  scope: DataScope;
+  startsAt: string;
+  endsAt: string;
+  reason: string;
+  approverId: string;
+  status: "pending" | "approved" | "rejected" | "revoked";
+  createdAt: string;
+  decidedAt?: string;
 };

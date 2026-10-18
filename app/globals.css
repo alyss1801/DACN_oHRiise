@@ -3031,3 +3031,53 @@ body {
   .iam-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .iam-filter-grid, .iam-summary-strip, .iam-template-facts, .iam-review-change-grid, .iam-effective-metrics { grid-template-columns: 1fr; }.iam-summary-strip > div, .iam-template-facts > div { border-right: 0; border-bottom: 1px solid var(--border); }.iam-summary-strip > div:last-child, .iam-template-facts > div:last-child { border-bottom: 0; }.iam-review-diff { grid-template-columns: 1fr; }
 }
+
+/* Access reviews and temporary delegation */
+.iam-governance-filters { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.iam-governance-filters input, .iam-governance-form input, .iam-governance-form select, .iam-governance-form textarea, .iam-review-item-actions input { width: 100%; min-height: 38px; border: 1px solid var(--border); border-radius: 9px; outline: 0; background: var(--surface); padding: 8px 10px; color: var(--text-primary); font: inherit; font-size: 12px; }
+.iam-governance-filters input:focus, .iam-governance-form input:focus, .iam-governance-form select:focus, .iam-governance-form textarea:focus, .iam-review-item-actions input:focus { border-color: var(--iam-blue); }
+.iam-governance-list { display: grid; }
+.iam-governance-row { display: grid; width: 100%; min-height: 88px; grid-template-columns: 38px minmax(190px,1.5fr) minmax(140px,.7fr) minmax(115px,.55fr) 18px; align-items: center; gap: 14px; border: 0; border-top: 1px solid var(--border); background: transparent; padding: 12px 18px; color: var(--text-primary); text-align: left; cursor: pointer; }
+.iam-governance-row:hover, .iam-governance-row:focus-visible { outline: 0; background: color-mix(in srgb,var(--iam-blue) 4%,var(--surface)); }
+.iam-governance-row > svg:last-child { color: var(--text-secondary); }
+.iam-governance-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; background: color-mix(in srgb,var(--iam-blue) 9%,var(--surface)); color: var(--iam-blue); }
+.iam-governance-main, .iam-governance-progress, .iam-governance-period, .iam-governance-state { display: grid; min-width: 0; gap: 5px; }
+.iam-governance-main strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.iam-governance-main small, .iam-governance-progress small, .iam-governance-period small, .iam-governance-state small { color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
+.iam-governance-progress strong, .iam-governance-period strong { font-size: 12px; font-weight: 600; }
+.iam-governance-progress i { display: block; max-width: 100%; height: 3px; border-radius: 3px; background: var(--iam-blue); }
+.iam-governance-state { width: fit-content; border-radius: 8px; background: color-mix(in srgb,var(--iam-blue) 8%,var(--surface)); padding: 7px 9px; color: var(--iam-blue); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.iam-governance-state.done { background: color-mix(in srgb,var(--iam-green) 9%,var(--surface)); color: var(--iam-green); }
+.iam-governance-state.late { background: color-mix(in srgb,#dc5268 10%,var(--surface)); color: #d3445c; }
+.iam-governance-form { display: grid; gap: 18px; }
+.iam-governance-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.iam-governance-form-grid label, .iam-review-item-actions label { display: grid; min-width: 0; gap: 7px; }
+.iam-governance-form-grid label > span, .iam-review-item-actions label > span { color: var(--text-secondary); font-size: 11px; font-weight: 650; }
+.iam-governance-form-grid .wide { grid-column: 1 / -1; }
+.iam-governance-form textarea { resize: vertical; }
+.iam-governance-readonly { display: flex; min-height: 38px; align-items: center; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-hover); padding: 0 10px; color: var(--text-secondary); font-size: 12px; }
+.iam-governance-preview { border: 1px solid color-mix(in srgb,var(--iam-blue) 17%,var(--border)); border-radius: 11px; background: color-mix(in srgb,var(--iam-blue) 4%,var(--surface)); padding: 14px; }
+.iam-governance-preview strong, .iam-governance-close strong { font-size: 13px; }
+.iam-governance-preview p, .iam-governance-close p, .iam-governance-audit p { margin: 5px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.iam-governance-warning { margin: 0; color: #d3445c; font-size: 12px; }
+.iam-review-items { display: grid; }
+.iam-review-items article { display: grid; gap: 12px; border-top: 1px solid var(--border); padding: 16px 18px; }
+.iam-review-item-main { display: grid; grid-template-columns: minmax(190px,1fr) minmax(180px,.9fr) auto; align-items: center; gap: 18px; }
+.iam-review-item-main > div { display: grid; gap: 6px; }
+.iam-review-item-main > div > span:not(.iam-person):not(.iam-template-chip), .iam-review-item-main small { color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
+.iam-review-item-actions { display: flex; align-items: end; gap: 12px; }
+.iam-review-item-actions label { flex: 1; }
+.iam-review-item-actions > div { display: flex; gap: 7px; }
+.iam-governance-close { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.iam-governance-close > div:first-child { min-width: 0; }
+.iam-governance-actions { display: flex; flex-shrink: 0; gap: 8px; }
+.iam-governance-detail { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.iam-governance-detail > div { display: grid; min-width: 0; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.iam-governance-detail > div > span { color: var(--text-secondary); font-size: 11px; }
+.iam-governance-detail strong { font-size: 13px; font-weight: 600; }
+.iam-governance-audit { display: grid; gap: 10px; }
+.iam-governance-audit > div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 12px; }
+.iam-governance-audit > div span { color: var(--text-secondary); }
+@media (max-width: 1050px) { .iam-governance-filters { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 760px) { .iam-governance-filters, .iam-governance-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.iam-governance-row { grid-template-columns: 36px minmax(0,1fr) auto; }.iam-governance-row > .iam-governance-progress, .iam-governance-row > .iam-governance-period { grid-column: 2; }.iam-governance-row > .iam-governance-state { grid-column: 3; grid-row: 1 / 3; }.iam-governance-row > svg:last-child { display: none; }.iam-review-item-main { grid-template-columns: 1fr auto; }.iam-review-item-main > div:nth-child(2) { grid-column: 1; }.iam-review-item-main > .iam-governance-state { grid-column: 2; grid-row: 1 / 3; }.iam-review-item-actions, .iam-governance-close { align-items: stretch; flex-direction: column; } }
+@media (max-width: 480px) { .iam-governance-filters, .iam-governance-form-grid, .iam-governance-detail { grid-template-columns: 1fr; }.iam-governance-form-grid .wide { grid-column: auto; }.iam-governance-row { grid-template-columns: 32px minmax(0,1fr); }.iam-governance-row > .iam-governance-state { grid-column: 2; grid-row: auto; }.iam-review-item-main { grid-template-columns: 1fr; }.iam-review-item-main > div:nth-child(2), .iam-review-item-main > .iam-governance-state { grid-column: 1; grid-row: auto; }.iam-review-item-actions > div, .iam-governance-actions { flex-wrap: wrap; }.iam-governance-audit > div { flex-direction: column; } }
