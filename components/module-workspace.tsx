@@ -18,13 +18,23 @@ import { ApprovalMiniappWorkspace } from "@/features/team/approval-miniapp-works
 import { TeamCalendarWorkspace } from "@/features/team/team-calendar-workspace";
 import { TeamOverviewWorkspace } from "@/features/team/team-overview-workspace";
 import { WfhAiWorkspace } from "@/features/team/wfh-ai-workspace";
-import { AiCvWorkspace } from "@/features/hr/ai-cv-workspace";
-import { HrContractsWorkspace, OnboardingWorkspace } from "@/features/hr/lifecycle-workspaces";
-import { EmployeesWorkspace, OffboardingWorkspace, OrganizationWorkspace } from "@/features/hr/people-workspaces";
-import { AttendanceMonitoringWorkspace, ExpenseReviewWorkspace, MisaSyncWorkspace, ReportsWorkspace, TimesheetsWorkspace } from "@/features/hr/operations-workspaces";
+import { OrganizationWorkspace } from "@/features/hr/people-workspaces";
+import { ExpenseReviewWorkspace } from "@/features/hr/operations-workspaces";
 import { AuditWorkspace } from "@/features/admin/access-workspaces";
 import { AdminOverviewWorkspace, AiGovernanceWorkspace, BranchesWorkspace, CatalogsWorkspace, EmailDlpWorkspace, IntegrationsWorkspace, NotificationConfigWorkspace } from "@/features/admin/system-workspaces";
 import { IamWorkspace } from "@/features/admin/iam/iam-workspace";
+import { HrCommandWorkspace } from "@/features/hr/hr-command-workspace";
+import { HrPeopleWorkspace } from "@/features/hr/hr-people-core";
+import { HrAttendanceWorkspace } from "@/features/hr/hr-attendance-core";
+import { HrTimesheetWorkspace } from "@/features/hr/hr-timesheet-core";
+import { HrMisaWorkspace } from "@/features/hr/hr-misa-core";
+import { HrLeaveWorkspace } from "@/features/hr/hr-leave-core";
+import { HrContractsCore } from "@/features/hr/hr-contracts-core";
+import { HrCaseWorkspace } from "@/features/hr/hr-cases-core";
+import { HrAssetsWorkspace } from "@/features/hr/hr-assets-core";
+import { HrPolicyWorkspace } from "@/features/hr/hr-policy-core";
+import { HrRecruitmentWorkspace } from "@/features/hr/hr-recruitment-core";
+import { HrAnalyticsWorkspace } from "@/features/hr/hr-analytics-core";
 
 const moduleCopy: Record<string, { eyebrow: string; title: string; description: string; action?: string }> = {
   profile: { eyebrow: "HỒ SƠ CÁ NHÂN", title: "Thông tin của Nguyễn Thu Hà", description: "Thông tin được hiển thị theo chính sách trường nhạy cảm.", action: "Cập nhật hồ sơ" },
@@ -56,8 +66,11 @@ const moduleCopy: Record<string, { eyebrow: string; title: string; description: 
 export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: string; onHome: () => void; onNavigate: (id: string) => void }) {
   const { session, fieldVisibility } = useSession();
   const isAccessWorkspace = moduleId.startsWith("access/");
+  const hrModuleId = moduleId.split("/")[0];
   const resolvedModuleId = isAccessWorkspace
     ? "accounts"
+    : ["hr-command", "employees", "attendance-monitoring", "timesheets", "misa-sync", "hr-leave", "hr-contracts", "onboarding", "offboarding", "hr-assets", "hr-policies", "ai-cv"].includes(hrModuleId)
+    ? hrModuleId
     : moduleId === "schedule"
     ? "attendance"
     : moduleId === "wfh" || moduleId === "leave" || moduleId === "expenses"
@@ -74,6 +87,19 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
 
   if (isAccessWorkspace) return <IamWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
 
+  if (resolvedModuleId === "hr-command") return <HrCommandWorkspace onNavigate={onNavigate} />;
+  if (resolvedModuleId === "employees") return <HrPeopleWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "attendance-monitoring") return <HrAttendanceWorkspace moduleId={moduleId} />;
+  if (resolvedModuleId === "timesheets") return <HrTimesheetWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "misa-sync") return <HrMisaWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "hr-leave") return <HrLeaveWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "hr-contracts") return <HrContractsCore moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "onboarding" || resolvedModuleId === "offboarding") return <HrCaseWorkspace kind={resolvedModuleId} moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "hr-assets") return <HrAssetsWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "hr-policies") return <HrPolicyWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "ai-cv") return <HrRecruitmentWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "reports") return <HrAnalyticsWorkspace onNavigate={onNavigate} />;
+
   if (resolvedModuleId === "profile") return <ProfileWorkspace />;
   if (moduleId === "schedule") return <ScheduleTimeFundWorkspace />;
   if (resolvedModuleId === "attendance") return <AttendanceCenterWorkspace />;
@@ -87,17 +113,8 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (resolvedModuleId === "approvals") return <ApprovalMiniappWorkspace />;
   if (moduleId === "team-calendar") return <TeamCalendarWorkspace />;
   if (resolvedModuleId === "ai-wfh") return <WfhAiWorkspace personalView={moduleId === "daily-report" || moduleId.startsWith("ai-wfh-")} initialSection={moduleId === "ai-wfh-session" || moduleId === "daily-report" ? "session" : moduleId === "ai-wfh-history" ? "history" : "overview"} onNavigate={onNavigate} />;
-  if (moduleId === "employees") return <EmployeesWorkspace />;
-  if (moduleId === "onboarding") return <OnboardingWorkspace />;
-  if (moduleId === "hr-contracts") return <HrContractsWorkspace />;
   if (moduleId === "organization") return <OrganizationWorkspace />;
-  if (moduleId === "offboarding") return <OffboardingWorkspace />;
-  if (moduleId === "attendance-monitoring") return <AttendanceMonitoringWorkspace />;
-  if (moduleId === "timesheets") return <TimesheetsWorkspace />;
   if (moduleId === "expense-review") return <ExpenseReviewWorkspace />;
-  if (moduleId === "misa-sync") return <MisaSyncWorkspace />;
-  if (moduleId === "reports") return <ReportsWorkspace />;
-  if (moduleId === "ai-cv") return <AiCvWorkspace />;
   if (moduleId === "admin-overview") return <AdminOverviewWorkspace onNavigate={onNavigate} />;
   if (moduleId === "branches-gps") return <BranchesWorkspace />;
   if (moduleId === "catalogs") return <CatalogsWorkspace />;

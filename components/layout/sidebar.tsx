@@ -50,7 +50,7 @@ export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSig
               <div className="nav-group-label">{group.label}</div>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const parentActive = activeId === item.id || (item.id === "access/users" && activeId.startsWith("access/")) || item.children?.some((child) => child.id === activeId);
+                const parentActive = activeId === item.id || (item.id === "access/users" && activeId.startsWith("access/")) || (item.id !== "access/users" && activeId.startsWith(`${item.id}/`)) || item.children?.some((child) => child.id === activeId);
                 const itemBadge = item.id === "ai-wfh" && wfhReportStatus === "submitted" ? undefined : item.badge;
                 return (
                   <div className={cn("nav-item-cluster", parentActive && "is-expanded")} key={item.id}>

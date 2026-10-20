@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Chi phí" | "Điều chỉnh chấm công" | "Đăng ký OT" | "Đổi ca";
 export type BusinessRequestStatus = "pending" | "approved" | "rejected" | "hr-review";
@@ -62,6 +62,7 @@ const initialRequests: BusinessRequest[] = [
   { id: "WFH-2026-087", type: "WFH", employee: "Nguyễn Thu Hà", initials: "NH", submitted: "25/09/2026", detail: "Cả ngày · Làm việc tại nhà theo lịch nhóm", date: "25/09/2026", status: "approved" },
   { id: "WFH-2026-104", type: "WFH", employee: "Bùi Thanh Tâm", initials: "BT", submitted: "12 phút trước", detail: "Hoàn thiện ETL mapping và review PR #184", date: "09/10/2026", status: "pending" },
   { id: "LV-2026-191", type: "Nghỉ phép", employee: "Lê Hoàng Vy", initials: "LV", submitted: "42 phút trước", detail: "Nghỉ phép năm · 1 ngày", date: "15/10/2026", status: "pending" },
+  { id: "LV-2026-201", type: "Nghỉ phép", employee: "Lê Hoàng Vy", initials: "LV", submitted: "18/10/2026", detail: "Nghỉ phép năm · 1 ngày", date: "20/10/2026", status: "approved" },
   { id: "EXP-2610-045", type: "Chi phí", employee: "Trần Minh Khoa", initials: "TK", submitted: "Hôm qua", detail: "JetBrains All Products Pack · 4.850.000 ₫", date: "06/10/2026", status: "pending" },
   { id: "ATT-2026-088", type: "Điều chỉnh chấm công", employee: "Võ Thu Linh", initials: "TL", submitted: "Hôm qua", detail: "Thiếu check-out ngày 05/10 · có ảnh xác nhận", date: "05/10/2026", status: "pending" },
   { id: "OT-2026-041", type: "Đăng ký OT", employee: "Nguyễn Thu Hà", initials: "NH", submitted: "Hôm qua", detail: "2 giờ · Hoàn thiện bàn giao design system", date: "08/10/2026", status: "pending" },
@@ -72,7 +73,7 @@ const initialAccounts: DemoAccount[] = [
   { id: "OH-0184", initials: "TQ", name: "Trần Minh Quân", email: "quan.tran@ohriise.vn", department: "Sản phẩm", branch: "HCM-Q1", template: "Employee", status: "active", mfa: true, lastLogin: "07/10 · 09:52" },
   { id: "OH-0248", initials: "NH", name: "Nguyễn Thu Hà", email: "ha.nguyen@ohriise.vn", department: "Sản phẩm", branch: "HCM-Q1", template: "Employee", status: "active", mfa: false, lastLogin: "07/10 · 08:37" },
   { id: "OH-0259", initials: "BT", name: "Bùi Thanh Tâm", email: "tam.bui@ohriise.vn", department: "Công nghệ thông tin", branch: "HCM-TD", template: "Employee + Team Lead", status: "active", mfa: true, lastLogin: "07/10 · 08:24" },
-  { id: "OH-0137", initials: "PL", name: "Phạm Thanh Long", email: "long.pham@ohriise.vn", department: "Kinh doanh", branch: "HN-CG", template: "Employee", status: "inactive", mfa: false, lastLogin: "29/09 · 17:18" },
+  { id: "OH-0137", initials: "PL", name: "Phạm Thanh Long", email: "long.pham@ohriise.vn", department: "Kinh doanh", branch: "HN-CG", template: "Employee", status: "active", mfa: false, lastLogin: "19/10 · 17:18" },
 ];
 
 const initialReviews: AccessReview[] = [
@@ -97,7 +98,7 @@ type DemoDataContextValue = {
   addBusinessRequest: (request: NewBusinessRequest) => string;
   updateBusinessRequest: (id: string, patch: Pick<BusinessRequest, "date" | "detail">) => void;
   cancelBusinessRequest: (id: string) => void;
-  decideBusinessRequest: (id: string, status: "approved" | "rejected", note?: string) => void;
+  decideBusinessRequest: (id: string, status: "approved" | "rejected", note?: string, actor?: string) => void;
   accounts: DemoAccount[];
   selectedAccount: DemoAccount;
   selectAccount: (id: string) => void;
@@ -115,11 +116,16 @@ const DemoDataContext = createContext<DemoDataContextValue | null>(null);
 
 export function DemoDataProvider({ children }: { children: React.ReactNode }) {
   const [wfhReportStatus, setWfhReportStatus] = useState<WfhReportStatus>("required");
-  const [requests, setRequests] = useState(initialRequests);
+  const [requests, setRequests] = useState<BusinessRequest[]>(() => {
+    if (typeof window === "undefined") return initialRequests;
+    try { const stored = window.localStorage.getItem("ohriise-business-requests-v1"); if (stored) { const parsed: BusinessRequest[] = JSON.parse(stored); if (Array.isArray(parsed)) return parsed; } } catch { /* Ignore an invalid old snapshot. */ }
+    return initialRequests;
+  });
   const [accounts, setAccounts] = useState(initialAccounts);
   const [selectedAccountId, setSelectedAccountId] = useState(initialAccounts[0].id);
   const [accessReviews, setAccessReviews] = useState(initialReviews);
   const [auditEvents, setAuditEvents] = useState(initialAudit);
+  useEffect(() => { window.localStorage.setItem("ohriise-business-requests-v1", JSON.stringify(requests)); }, [requests]);
 
   function addAuditEvent(event: Omit<AuditEvent, "id" | "time" | "date">) {
     const now = new Date();
@@ -145,9 +151,9 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
     setRequests((current) => current.filter((request) => request.id !== id || request.status !== "pending"));
   }
 
-  function decideBusinessRequest(id: string, status: "approved" | "rejected", note?: string) {
-    setRequests((current) => current.map((request) => request.id === id ? { ...request, status, note } : request));
-    addAuditEvent({ actor: "Trần Minh Quân · Team Lead", action: status === "approved" ? "APPROVE_REQUEST" : "REJECT_REQUEST", target: id, result: status === "approved" ? "success" : "rejected", source: "Demo session", detail: note || "Quyết định được ghi nhận từ Approval Inbox." });
+  function decideBusinessRequest(id: string, status: "approved" | "rejected", note?: string, actor = "Trần Minh Quân · Team Lead") {
+    setRequests((current) => current.map((request) => request.id === id && (request.status === "pending" || request.status === "hr-review") ? { ...request, status, note } : request));
+    addAuditEvent({ actor, action: status === "approved" ? "APPROVE_REQUEST" : "REJECT_REQUEST", target: id, result: status === "approved" ? "success" : "rejected", source: "Demo session", detail: note || "Quyết định được ghi nhận từ Approval Inbox." });
   }
 
   function updateAccount(id: string, patch: Partial<DemoAccount>) {

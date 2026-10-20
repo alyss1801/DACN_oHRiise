@@ -13,6 +13,7 @@ import { TopBar } from "./layout/top-bar";
 import { EmployeeHome } from "@/features/dashboard/employee-home";
 import { DemoDataProvider } from "@/features/demo/demo-data-context";
 import { IamProvider, useIam } from "@/features/admin/iam/iam-context";
+import { HrDemoProvider } from "@/features/hr/hr-demo-context";
 import { ModuleVisualProvider } from "@/features/employee/workspace-frame";
 import { SessionProvider, useSession } from "@/features/session/session-context";
 import { navigationFor } from "@/lib/navigation";
@@ -25,10 +26,10 @@ export function ProductDemo({ initialModule = "home" }: { initialModule?: string
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <DemoDataProvider>
         <SessionProvider>
-          <IamProvider>
+          <HrDemoProvider><IamProvider>
             {signedIn ? <AuthenticatedProduct initialModule={initialModule} onSignOut={() => setSignedIn(false)} /> : <LoginScreen onSignIn={() => setSignedIn(true)} />}
             <Toaster theme="light" position="bottom-right" richColors closeButton />
-          </IamProvider>
+          </IamProvider></HrDemoProvider>
         </SessionProvider>
       </DemoDataProvider>
     </ThemeProvider>
@@ -45,7 +46,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const visibleItems = useMemo(() => navigationFor(session).flatMap((group) => group.items), [session]);
-  const activeTitle = visibleItems.flatMap((item) => [item, ...(item.children ?? [])]).find((item) => item.id === activeId || (item.id === "access/users" && activeId.startsWith("access/")))?.label ?? "Truy cập bị giới hạn";
+  const activeTitle = visibleItems.flatMap((item) => [item, ...(item.children ?? [])]).find((item) => item.id === activeId || (item.id === "access/users" && activeId.startsWith("access/")) || (item.id !== "access/users" && activeId.startsWith(`${item.id}/`)))?.label ?? "Truy cập bị giới hạn";
   const moduleVisual = visualForModule(activeId.startsWith("access/") ? "accounts" : activeId);
 
   useEffect(() => {
