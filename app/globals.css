@@ -3114,3 +3114,32 @@ body {
 @media (max-width: 1320px) { .hr-command-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }.hr-attendance-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); } }
 @media (max-width: 1000px) { .hr-command-columns, .hr-misa-grid, .hr-leave-detail { grid-template-columns: 1fr; }.hr-command-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); }.hr-attendance-detail-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .hr-command-metrics, .hr-attendance-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }.hr-demo-note, .hr-profile-hero, .hr-timesheet-day, .hr-inline-confirm { align-items: flex-start; flex-direction: column; }.hr-form-grid, .hr-profile-facts, .hr-mapping { grid-template-columns: 1fr; }.hr-directory-tools > select, .hr-directory-tools .compact-search { width: 100%; max-width: none; }.hr-calendar-grid > div { min-height: 66px; padding: 5px; }.hr-calendar-grid button { font-size: 9px; }.hr-profile-hero > .primary-button { width: 100%; } }
+
+/* Contract directory: keep the frequent actions visible without squeezing table cells. */
+.hr-contract-list { gap: 16px; }
+.hr-contract-caption { margin: -4px 0 0; color: var(--text-secondary); font-size: 12px; }
+.hr-contract-directory { border-color: var(--border); border-radius: 14px; background: var(--surface); }
+.hr-contract-filters { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(170px, 200px) minmax(150px, 180px) auto; gap: 10px; padding: 14px 18px; }
+.hr-contract-filters .compact-search { width: 100%; min-width: 0; height: 38px; }
+.hr-contract-filters .compact-search input { width: 100%; min-width: 0; min-height: 0; height: 100%; border: 0; background: transparent; padding: 0; box-shadow: none; font-size: 13px; }
+.hr-contract-filters select { width: 100%; max-width: none; }
+.hr-contract-more { min-height: 38px; white-space: nowrap; }
+.hr-contract-extra-filters { display: grid; grid-template-columns: minmax(160px, 220px) minmax(160px, 220px) auto; align-items: center; justify-content: start; gap: 10px; border-bottom: 1px solid var(--border); padding: 0 18px 14px; }
+.hr-contract-clear { border: 0; background: transparent; color: var(--hr-accent); font-size: 12px; text-align: left; }
+.hr-contract-table { min-width: 980px !important; table-layout: fixed; }
+.hr-contract-table th, .hr-contract-table td { padding: 12px 16px; }
+.hr-contract-table th { height: 43px; white-space: nowrap; }
+.hr-contract-table td { height: 76px; line-height: 1.4; }
+.hr-contract-table th:nth-child(1) { width: 18%; }
+.hr-contract-table th:nth-child(2) { width: 22%; }
+.hr-contract-table th:nth-child(3) { width: 22%; }
+.hr-contract-table th:nth-child(4) { width: 13%; }
+.hr-contract-table th:nth-child(5) { width: 16%; }
+.hr-contract-table th:nth-child(6) { width: 9%; }
+.hr-contract-table td strong { font-size: 14px; }
+.hr-contract-table td small { margin-top: 4px; font-size: 11px; line-height: 1.35; }
+.hr-contract-table .hr-contract-id, .hr-contract-table .hr-contract-dates { white-space: nowrap; }
+.hr-contract-table td .workflow-status { display: inline-flex; width: max-content; min-height: 28px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+.hr-contract-table th:last-child, .hr-contract-table td:last-child { padding-right: 18px; text-align: right; }
+@media (max-width: 1000px) { .hr-contract-filters { grid-template-columns: minmax(220px, 1fr) minmax(165px, 200px); }.hr-contract-extra-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }.hr-contract-clear { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .hr-contract-filters, .hr-contract-extra-filters { grid-template-columns: 1fr; }.hr-contract-more, .hr-contract-clear { width: 100%; }.hr-contract-clear { grid-column: auto; }.hr-contract-caption { line-height: 1.5; } }

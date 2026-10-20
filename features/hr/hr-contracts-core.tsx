@@ -17,18 +17,53 @@ export function HrContractsCore({ moduleId, onNavigate }: { moduleId: string; on
   const [, slug, employeeId] = moduleId.split("/");
   if (slug === "new" || slug === "renew") return <ContractForm sourceId={slug === "renew" ? employeeId : undefined} employeeId={slug === "new" ? employeeId : undefined} onNavigate={onNavigate} />;
   if (slug && slug !== "expiring") return <ContractDetail id={slug} onNavigate={onNavigate} />;
-  return <ContractList expiringOnly={slug === "expiring"} onNavigate={onNavigate} />;
+  return <ContractList key={slug ?? "all"} expiringOnly={slug === "expiring"} onNavigate={onNavigate} />;
 }
 
 function ContractList({ expiringOnly, onNavigate }: { expiringOnly: boolean; onNavigate: (id: string) => void }) {
-  const { contracts, employees } = useHrDemo(); const { session, can } = useSession();
-  const [query, setQuery] = useState(""); const [status, setStatus] = useState(expiringOnly ? "expiring" : ""); const [document, setDocument] = useState(""); const [branch, setBranch] = useState(""); const [department, setDepartment] = useState("");
-  const scoped = contracts.filter((item) => { const person = employees.find((entry) => entry.id === item.employeeId); return person && canAccessScopedRecord(session, { employeeId: person.id, branch: person.branch, department: person.department }); });
-  const visible = scoped.filter((item) => { const person = employees.find((entry) => entry.id === item.employeeId); const days = Math.ceil((new Date(item.endsAt).getTime() - new Date(hrToday()).getTime()) / 86400000); return `${item.id} ${person?.name ?? ""}`.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi")) && (!branch || person?.branch === branch) && (!department || person?.department === department) && (!document || item.document === document) && (!status || (status === "expiring" ? item.status === "active" && days >= 0 && days <= 30 : status === "missing" ? item.document === "missing" : status === "expired" ? item.status === "expired" || days < 0 : item.status === status)); });
-  return <div className="page-stack hr-core"><WorkspaceHeader title="Vòng đời hợp đồng" subtitle={`${visible.length} hợp đồng · dữ liệu demo theo phạm vi ${session.effectiveScope}`} action={can("hr-contracts", "create") ? <button className="primary-button" onClick={() => onNavigate(`${base}/new`)}><FilePlus2 size={15} /> Tạo hợp đồng</button> : undefined} />
-    <div className="hr-demo-note"><strong>Hợp đồng giấy</strong><span>Bản ký được ghi nhận và HR xác minh thủ công trong demo. Không có ký điện tử pháp lý hoặc kho tệp backend.</span></div>
-    <section className="panel hr-directory"><div className="hr-directory-tools"><label className="compact-search"><Search size={15} /><input aria-label="Tìm hợp đồng" placeholder="Mã hợp đồng hoặc nhân viên" value={query} onChange={(event) => setQuery(event.target.value)} /></label><select aria-label="Trạng thái hợp đồng" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Mọi trạng thái</option><option value="active">Đang hiệu lực</option><option value="expiring">Sắp hết hạn (30 ngày)</option><option value="expired">Hết hạn</option><option value="draft">Bản nháp</option><option value="missing">Thiếu tài liệu</option></select><select aria-label="Tài liệu" value={document} onChange={(event) => setDocument(event.target.value)}><option value="">Mọi tài liệu</option><option value="missing">Thiếu bản ký</option><option value="paper-signed">Chờ xác minh</option><option value="verified">Đã xác minh</option></select><select aria-label="Chi nhánh" value={branch} onChange={(event) => setBranch(event.target.value)}><option value="">Mọi chi nhánh</option>{[...new Set(employees.map((item) => item.branch))].map((item) => <option key={item}>{item}</option>)}</select><select aria-label="Phòng ban" value={department} onChange={(event) => setDepartment(event.target.value)}><option value="">Mọi phòng ban</option>{[...new Set(employees.map((item) => item.department))].map((item) => <option key={item}>{item}</option>)}</select></div>
-      <div className="table-scroll"><table className="data-table"><thead><tr><th>Mã</th><th>Nhân viên</th><th>Loại</th><th>Bắt đầu</th><th>Kết thúc</th><th>Còn lại</th><th>Tài liệu</th><th>Hiệu lực</th><th>Phụ trách</th><th /></tr></thead><tbody>{visible.map((item) => { const person = employees.find((entry) => entry.id === item.employeeId); const days = Math.ceil((new Date(item.endsAt).getTime() - new Date(hrToday()).getTime()) / 86400000); return <tr key={item.id}><td className="mono">{item.id}</td><td><strong>{person?.name}</strong><small>{person?.department} · {person?.branch}</small></td><td>{item.type}</td><td>{hrDate(item.startsAt)}</td><td>{hrDate(item.endsAt)}</td><td>{days < 0 ? "Quá hạn" : `${days} ngày`}</td><td>{documentLabel[item.document]}</td><td><StatusPill tone={item.status === "active" ? "success" : "neutral"}>{statusLabel[item.status]}</StatusPill></td><td>{employees.find((entry) => entry.id === item.ownerId)?.name ?? "HR"}</td><td><button className="row-action" onClick={() => onNavigate(`${base}/${item.id}`)}>Mở <ArrowRight size={13} /></button></td></tr>; })}</tbody></table></div>{!visible.length && <p className="hr-empty">Không có hợp đồng phù hợp bộ lọc.</p>}</section></div>;
+  const { contracts, employees } = useHrDemo();
+  const { session, can } = useSession();
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState(expiringOnly ? "expiring" : "");
+  const [documentFilter, setDocumentFilter] = useState("");
+  const [branch, setBranch] = useState("");
+  const [department, setDepartment] = useState("");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const scoped = contracts.filter((item) => {
+    const person = employees.find((entry) => entry.id === item.employeeId);
+    return person && canAccessScopedRecord(session, { employeeId: person.id, branch: person.branch, department: person.department });
+  });
+  const scopedPeople = employees.filter((person) => canAccessScopedRecord(session, { employeeId: person.id, branch: person.branch, department: person.department }));
+  const visible = scoped.filter((item) => {
+    const person = employees.find((entry) => entry.id === item.employeeId);
+    const days = Math.ceil((new Date(item.endsAt).getTime() - new Date(hrToday()).getTime()) / 86400000);
+    return `${item.id} ${person?.name ?? ""}`.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi"))
+      && (!branch || person?.branch === branch)
+      && (!department || person?.department === department)
+      && (!documentFilter || item.document === documentFilter)
+      && (!status || (status === "expiring" ? item.status === "active" && days >= 0 && days <= 30 : status === "expired" ? item.status === "expired" || days < 0 : item.status === status));
+  });
+  const extraFilterCount = Number(Boolean(documentFilter)) + Number(Boolean(department));
+
+  return <div className="page-stack hr-core hr-contract-list">
+    <WorkspaceHeader title="Vòng đời hợp đồng" subtitle={`${visible.length} hợp đồng trong danh sách`} action={can("hr-contracts", "create") ? <button className="primary-button" onClick={() => onNavigate(`${base}/new`)}><FilePlus2 size={15} /> Tạo hợp đồng</button> : undefined} />
+    <p className="hr-contract-caption">Bản ký giấy được HR xác minh thủ công trong demo; chưa có ký số hoặc kho tệp backend.</p>
+    <section className="panel hr-directory hr-contract-directory">
+      <div className="hr-directory-tools hr-contract-filters">
+        <label className="compact-search"><Search size={16} aria-hidden="true" /><input aria-label="Tìm hợp đồng" placeholder="Tìm mã hoặc tên nhân viên" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+        <select aria-label="Trạng thái hợp đồng" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Mọi trạng thái</option><option value="active">Đang hiệu lực</option><option value="expiring">Sắp hết hạn (30 ngày)</option><option value="expired">Hết hạn</option><option value="draft">Bản nháp</option></select>
+        <select aria-label="Chi nhánh" value={branch} onChange={(event) => setBranch(event.target.value)}><option value="">Mọi chi nhánh</option>{[...new Set(scopedPeople.map((item) => item.branch))].map((item) => <option key={item}>{item}</option>)}</select>
+        <button type="button" className="secondary-button hr-contract-more" aria-expanded={showMoreFilters} onClick={() => setShowMoreFilters((current) => !current)}>Lọc thêm{extraFilterCount ? ` (${extraFilterCount})` : ""}</button>
+      </div>
+      {showMoreFilters && <div className="hr-contract-extra-filters"><select aria-label="Tình trạng tài liệu" value={documentFilter} onChange={(event) => setDocumentFilter(event.target.value)}><option value="">Mọi tài liệu</option><option value="missing">Thiếu bản ký</option><option value="paper-signed">Chờ xác minh</option><option value="verified">Đã xác minh</option></select><select aria-label="Phòng ban" value={department} onChange={(event) => setDepartment(event.target.value)}><option value="">Mọi phòng ban</option>{[...new Set(scopedPeople.map((item) => item.department))].map((item) => <option key={item}>{item}</option>)}</select><button type="button" className="hr-contract-clear" disabled={!documentFilter && !department} onClick={() => { setDocumentFilter(""); setDepartment(""); }}>Xóa lọc thêm</button></div>}
+      <div className="table-scroll"><table className="data-table hr-contract-table"><thead><tr><th>Hợp đồng</th><th>Nhân viên</th><th>Thời hạn</th><th>Tài liệu</th><th>Trạng thái</th><th><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{visible.map((item) => {
+        const person = employees.find((entry) => entry.id === item.employeeId);
+        const days = Math.ceil((new Date(item.endsAt).getTime() - new Date(hrToday()).getTime()) / 86400000);
+        return <tr key={item.id}><td><strong className="hr-contract-id">{item.id}</strong><small>{item.type}</small></td><td><strong>{person?.name}</strong><small>{person?.department} · {person?.branch}</small></td><td><span className="hr-contract-dates">{hrDate(item.startsAt)} – {hrDate(item.endsAt)}</span><small>{days < 0 ? "Đã quá hạn" : `Còn ${days} ngày`}</small></td><td>{documentLabel[item.document]}</td><td><StatusPill tone={item.status === "active" ? "success" : "neutral"}>{statusLabel[item.status]}</StatusPill></td><td><button className="row-action" onClick={() => onNavigate(`${base}/${item.id}`)}>Mở <ArrowRight size={13} /></button></td></tr>;
+      })}</tbody></table></div>
+      {!visible.length && <p className="hr-empty">Không có hợp đồng phù hợp bộ lọc.</p>}
+    </section>
+  </div>;
 }
 
 function ContractForm({ employeeId, sourceId, onNavigate }: { employeeId?: string; sourceId?: string; onNavigate: (id: string) => void }) {
