@@ -15,11 +15,6 @@ export type MailAccount = { key: string; name: string; address: string; initials
 export type AnnouncementChannel = { id: string; name: string; audience: string; memberKeys: string[]; kind: "company" | "branch" | "group"; branch?: string; leadId?: string };
 export type CommunicationResult = { ok: true; store: CommunicationStore; id: string } | { ok: false; error: string };
 
-const virtualMailboxes: Partial<Record<PersonaId, { name: string; address: string; initials: string }>> = {
-  recruiter: { name: "HR Tuyển dụng", address: "recruiter@demo.ohriise.vn", initials: "TD" },
-  "system-admin": { name: "System Admin", address: "admin@demo.ohriise.vn", initials: "SA" },
-};
-
 const seed = (id: string, from: string, fromName: string, to: string, subject: string, body: string, at: string): MailMessage => ({ id, from, fromName, to, subject, body, at, readBy: [], starredBy: [], archivedBy: [], deletedBy: [] });
 export const initialCommunicationStore: CommunicationStore = { version: 1, announcements: [], mail: [
   seed("MAIL-SEED-1", "quan.tran@ohriise.vn", "Trần Minh Quân", "ha.nguyen@ohriise.vn", "Kế hoạch sprint và lịch WFH", "Chào Hà, lịch sprint đã cập nhật. Mình sẽ trao đổi thêm trong buổi họp nhóm.", "2026-10-20T03:24:00.000Z"),
@@ -31,13 +26,11 @@ export const initialCommunicationStore: CommunicationStore = { version: 1, annou
 export function mailAccount(session: EffectiveSession, employees: HrEmployee[]): MailAccount {
   const employee = employees.find((item) => item.id === personaEmployeeIds[session.id]);
   if (employee) return { key: employee.id, name: employee.name, address: employee.email.toLowerCase(), initials: employee.initials };
-  const fallback = virtualMailboxes[session.id];
-  return { key: `persona:${session.id}`, name: fallback?.name ?? session.label, address: fallback?.address ?? `${session.id}@demo.ohriise.vn`, initials: fallback?.initials ?? session.shortLabel };
+  return { key: `persona:${session.id}`, name: session.label, address: `${session.id}@demo.ohriise.vn`, initials: session.shortLabel };
 }
 
 export function mailDirectory(employees: HrEmployee[]) {
-  return [...employees.filter((item) => item.status !== "inactive").map((item) => ({ key: item.id, address: item.email.toLowerCase(), name: item.name })),
-    ...Object.entries(virtualMailboxes).map(([id, item]) => ({ key: `persona:${id}`, address: item.address, name: item.name }))];
+  return employees.filter((item) => item.status !== "inactive").map((item) => ({ key: item.id, address: item.email.toLowerCase(), name: item.name }));
 }
 
 export function mailbox(store: CommunicationStore, address: string, folder: "inbox" | "sent" | "draft" | "starred" | "archive" | "trash") {
@@ -84,23 +77,23 @@ export function changeMail(store: CommunicationStore, actor: MailAccount, id: st
   return { ok: true, id, store: { ...store, mail: store.mail.map((item) => item.id === id ? updated : item) } };
 }
 
-const hrPoster = (id: PersonaId) => ["hr-total", "hr-branch", "recruiter", "compensation"].includes(id);
+const hrPoster = (id: PersonaId) => id === "hr-total";
 const companyPoster = (id: PersonaId) => id === "system-admin" || hrPoster(id);
 export function channelsFor(session: EffectiveSession, employees: HrEmployee[]): AnnouncementChannel[] {
   const active = employees.filter((item) => item.status !== "inactive");
   const actor = mailAccount(session, employees);
-  const channels: AnnouncementChannel[] = [{ id: "company", name: "Toàn công ty", audience: `${active.length} nhân sự`, kind: "company", memberKeys: [...active.map((item) => item.id), "persona:recruiter", "persona:system-admin"] }];
+  const channels: AnnouncementChannel[] = [{ id: "company", name: "Toàn công ty", audience: `${active.length} nhân sự`, kind: "company", memberKeys: active.map((item) => item.id) }];
   for (const branch of [...new Set(active.map((item) => item.branch))]) channels.push({ id: `branch:${branch}`, name: branch, audience: "Chi nhánh", kind: "branch", branch, memberKeys: active.filter((item) => item.branch === branch).map((item) => item.id) });
   for (const manager of active.filter((item) => active.some((person) => person.managerId === item.id))) channels.push({ id: `group:${manager.id}`, name: `Nhóm ${manager.name}`, audience: "Nhóm trực tiếp", kind: "group", leadId: manager.id, memberKeys: [manager.id, ...active.filter((person) => person.managerId === manager.id).map((item) => item.id)] });
-  return channels.filter((channel) => channel.memberKeys.includes(actor.key) || companyPoster(session.id) && (channel.kind !== "group") && (session.id !== "hr-branch" || channel.kind !== "branch" || channel.branch === session.branch));
+  return channels.filter((channel) => channel.memberKeys.includes(actor.key) || companyPoster(session.id) && channel.kind === "branch" && (session.effectiveScope === "company" || session.effectiveScope === "branch" && channel.branch === (session.scopeTarget ?? session.branch)));
 }
 
 export function canPostChannel(session: EffectiveSession, actor: MailAccount, channel: AnnouncementChannel) {
   const permission = session.permissions.some((item) => item.resource === "notifications" && item.actions.includes("create"));
   if (!permission) return false;
-  if (channel.kind === "group") return ["team-lead", "product-lead"].includes(session.id) && channel.leadId === actor.key;
+  if (channel.kind === "group") return session.id === "team-lead" && channel.leadId === actor.key && session.effectiveScope === "team";
   if (!companyPoster(session.id)) return false;
-  return channel.kind !== "branch" || session.id !== "hr-branch" || channel.branch === session.branch;
+  return session.effectiveScope === "company" || channel.kind === "branch" && session.effectiveScope === "branch" && channel.branch === (session.scopeTarget ?? session.branch);
 }
 
 export function publishAnnouncement(store: CommunicationStore, session: EffectiveSession, actor: MailAccount, channel: AnnouncementChannel, directory: ReturnType<typeof mailDirectory>, input: { id: string; title: string; body: string; emailCopy: boolean; at: string }): CommunicationResult {

@@ -45,12 +45,8 @@ export type SensitiveFieldPolicy = {
 
 export type PersonaId =
   | "employee"
-  | "product-lead"
   | "team-lead"
   | "hr-total"
-  | "hr-branch"
-  | "recruiter"
-  | "compensation"
   | "system-admin";
 
 export type PersonaDefinition = {
@@ -61,6 +57,7 @@ export type PersonaDefinition = {
   description: string;
   branch: string;
   department: string;
+  scopeTarget?: string;
   grants: PermissionGrant[];
   restrictions?: PermissionRestriction[];
   scopeConstraints: ScopeType[];

@@ -21,6 +21,7 @@ import { WfhDemoProvider, useWfhDemo } from "@/features/wfh/wfh-demo-context";
 import { CommunicationsProvider, useCommunications } from "@/features/communications/communications-context";
 import { ModuleVisualProvider } from "@/features/employee/workspace-frame";
 import { SessionProvider, useSession } from "@/features/session/session-context";
+import { IamSessionBridge } from "@/features/session/iam-session-bridge";
 import { navigationFor } from "@/lib/navigation";
 import { visualForModule } from "@/lib/module-visuals";
 
@@ -32,6 +33,7 @@ export function ProductDemo({ initialModule = "home" }: { initialModule?: string
       <DemoClockProvider><DemoDataProvider><WfhDemoProvider>
         <SessionProvider>
           <HrDemoProvider><CommunicationsProvider><LeaveDemoProvider><IamProvider>
+            <IamSessionBridge />
             {signedIn ? <AuthenticatedProduct initialModule={initialModule} onSignOut={() => setSignedIn(false)} /> : <LoginScreen onSignIn={() => setSignedIn(true)} />}
             <Toaster theme="light" position="bottom-right" richColors closeButton />
           </IamProvider></LeaveDemoProvider></CommunicationsProvider></HrDemoProvider>

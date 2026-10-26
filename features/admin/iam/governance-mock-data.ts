@@ -8,14 +8,14 @@ export const initialAccessReviews: AccessReview[] = [
     items: [
       { id: "r1", accountId: "user-2", templateId: "tpl-team-lead" },
       { id: "r2", accountId: "user-3", templateId: "tpl-employee" },
-      { id: "r3", accountId: "user-6", templateId: "tpl-hr-branch" },
+      { id: "r3", accountId: "user-6", templateId: "tpl-hr" },
     ],
   },
   {
     id: "review-hr", title: "Chứng nhận quyền nhân sự", reviewerId: "user-1",
     branch: "", department: "Nhân sự", dueDate: "2026-10-24", createdAt: "2026-10-10", status: "open",
     items: [
-      { id: "r5", accountId: "user-6", templateId: "tpl-hr-branch", decision: "keep" },
+      { id: "r5", accountId: "user-6", templateId: "tpl-hr", decision: "keep" },
       { id: "r6", accountId: "user-9", templateId: "tpl-employee" },
     ],
   },

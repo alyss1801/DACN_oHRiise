@@ -16,17 +16,19 @@ const employees = [
   { id: "OH-0271", name: "Lê Hoàng Vy", email: "vy.le@ohriise.vn", initials: "LV", branch: "HCM-TD", managerId: "OH-0259", status: "active" },
   { id: "OH-0091", name: "Nguyễn Thanh Lan", email: "lan.nguyen@ohriise.vn", initials: "NL", branch: "HCM-Q1", status: "active" },
   { id: "OH-0266", name: "Võ Thu Linh", email: "linh.vo@ohriise.vn", initials: "TL", branch: "HCM-Q1", managerId: "OH-0091", status: "active" },
+  { id: "OH-0001", name: "Lê Hải Nam", email: "nam.le@ohriise.vn", initials: "HN", branch: "HCM-TD", status: "active" },
 ];
 const at = "2026-10-20T04:00:00.000Z";
 
 test("email is reachable for every personnel persona", () => {
+  assert.deepEqual(personas.map((item) => item.label), ["Nhân viên", "Team Lead", "HR", "Admin"]);
   assert.equal(isDeferredModule("email"), false);
   for (const persona of personas) assert.ok(navigationFor(persona).some((group) => group.items.some((item) => item.id === "email")), persona.id);
 });
 
 test("mail stays inside the addressed mailbox; drafts and changes are owner scoped", () => {
   const employee = mailAccount(getPersona("employee"), employees);
-  const lead = mailAccount(getPersona("product-lead"), employees);
+  const lead = mailAccount(getPersona("team-lead"), employees);
   const hr = mailAccount(getPersona("hr-total"), employees);
   const directory = mailDirectory(employees);
   assert.equal(sendMail(initialCommunicationStore, employee, directory, { id: "m1", to: "outside@example.com", subject: "Hello", body: "Hello there", at }).ok, false);
@@ -46,12 +48,12 @@ test("mail stays inside the addressed mailbox; drafts and changes are owner scop
 test("channel posting follows HR, admin and direct lead permissions; email copies are optional", () => {
   const employeeSession = getPersona("employee");
   const leadSession = getPersona("team-lead");
-  const otherLeadSession = getPersona("product-lead");
+  const otherLeadSession = getPersona("employee");
   const hrSession = getPersona("hr-total");
-  const branchHrSession = getPersona("hr-branch");
+  const branchHrSession = { ...hrSession, effectiveScope: "branch", scopeTarget: "HCM-Q1" };
   const adminSession = getPersona("system-admin");
   const lead = mailAccount(leadSession, employees);
-  const leadGroup = channelsFor(leadSession, employees).find((item) => item.id === "group:OH-0259");
+  const leadGroup = channelsFor(leadSession, employees).find((item) => item.id === "group:OH-0184");
   const company = channelsFor(hrSession, employees).find((item) => item.id === "company");
   assert.ok(leadGroup);
   assert.ok(company);
@@ -67,9 +69,9 @@ test("channel posting follows HR, admin and direct lead permissions; email copie
   assert.equal(denied.ok, false);
   const posted = publishAnnouncement(initialCommunicationStore, leadSession, lead, leadGroup, mailDirectory(employees), { id: "a1", title: "Lịch họp nhóm", body: "Họp nhóm vào sáng thứ Sáu", emailCopy: true, at });
   assert.equal(posted.ok, true);
-  assert.deepEqual(posted.store.announcements[0].recipientKeys.sort(), ["OH-0259", "OH-0271"].sort());
-  assert.equal(mailbox(posted.store, "vy.le@ohriise.vn", "inbox").some((item) => item.announcementId === "a1"), true);
-  assert.equal(mailbox(posted.store, "ha.nguyen@ohriise.vn", "inbox").some((item) => item.announcementId === "a1"), false);
+  assert.deepEqual(posted.store.announcements[0].recipientKeys.sort(), ["OH-0184", "OH-0248"].sort());
+  assert.equal(mailbox(posted.store, "ha.nguyen@ohriise.vn", "inbox").some((item) => item.announcementId === "a1"), true);
+  assert.equal(mailbox(posted.store, "vy.le@ohriise.vn", "inbox").some((item) => item.announcementId === "a1"), false);
   const noCopy = publishAnnouncement(posted.store, hrSession, mailAccount(hrSession, employees), company, mailDirectory(employees), { id: "a2", title: "Lịch nghỉ lễ", body: "Vui lòng xem lịch nghỉ lễ mới", emailCopy: false, at });
   assert.equal(noCopy.ok, true);
   assert.equal(noCopy.store.mail.some((item) => item.announcementId === "a2"), false);

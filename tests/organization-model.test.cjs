@@ -19,8 +19,8 @@ Module._extensions[".ts"] = function loadTs(module, filename) {
 
 const { initialHrState, hrToday } = require("../features/hr/hr-demo-data.ts");
 const { applyOrganizationCommand } = require("../features/hr/organization-model.ts");
-const hrTotal = { id: "hr-total", effectiveScope: "company", label: "HR Tổng", permissions: [{ resource: "organization", actions: ["view", "edit"] }] };
-const hrBranch = { ...hrTotal, id: "hr-branch", effectiveScope: "branch", branch: "HCM-Q1" };
+const hrTotal = { id: "hr-total", effectiveScope: "company", label: "HR", permissions: [{ resource: "organization", actions: ["view", "edit"] }] };
+const hrBranch = { ...hrTotal, effectiveScope: "branch", branch: "HCM-Q1", scopeTarget: "HCM-Q1" };
 
 test("create Data Analytics and transfer three employees with shared history", () => {
   let state = structuredClone(initialHrState);

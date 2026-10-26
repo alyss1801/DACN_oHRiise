@@ -374,7 +374,7 @@ export function HrDemoProvider({ children }: { children: React.ReactNode }) {
 export function useHrDemo() { const context = useContext(HrContext); if (!context) throw new Error("useHrDemo must be used inside HrDemoProvider"); return context; }
 
 function normalizeHrSnapshot(snapshot: HrState): HrState {
-  const addedPeople = initialHrState.employees.filter((item) => ["OH-0301", "OH-0302"].includes(item.id) && !snapshot.employees.some((person) => person.id === item.id));
+  const addedPeople = initialHrState.employees.filter((item) => ["OH-0001", "OH-0301", "OH-0302"].includes(item.id) && !snapshot.employees.some((person) => person.id === item.id));
   const baseReview = initialHrState.probationReviews[0];
   const needsReview = snapshot.employees.some((item) => item.id === baseReview.employeeId && item.status === "probation") && !snapshot.probationReviews?.some((item) => item.employeeId === baseReview.employeeId);
   return {

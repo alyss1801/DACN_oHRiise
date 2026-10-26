@@ -5,6 +5,8 @@ import { Check, ChevronDown, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lu
 import { BrandMark } from "@/components/brand-mark";
 import { useDemoData } from "@/features/demo/demo-data-context";
 import { useSession } from "@/features/session/session-context";
+import { useHrDemo } from "@/features/hr/hr-demo-context";
+import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
 import { navigationFor } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,8 @@ type SidebarProps = {
 
 export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSignOut, collapsed, onToggleCollapsed }: SidebarProps) {
   const { session, personas, setPersona } = useSession();
+  const { employees } = useHrDemo();
+  const person = employees.find((item) => item.id === personaEmployeeIds[session.id]);
   const { wfhReportStatus } = useDemoData();
   const groups = navigationFor(session);
 
@@ -75,15 +79,14 @@ export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSig
             <DropdownMenu.Trigger asChild>
               <button className="persona-trigger">
                 <div className="avatar">{session.shortLabel}</div>
-                <div className="persona-copy"><strong>Nguyễn Thu Hà</strong><span>{session.label}</span></div>
+                <div className="persona-copy"><strong>{person?.name ?? session.label}</strong><span>{session.label}</span></div>
                 <ChevronDown size={15} strokeWidth={1.5} />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content className="persona-menu" side="right" sideOffset={12} align="end">
                 <div className="persona-menu-head">
-                  <span>CHẾ ĐỘ DEMO</span>
-                  <p>Chuyển ngữ cảnh để kiểm tra quyền hiệu lực.</p>
+                  <span>GÓC NHÌN DEMO</span>
                 </div>
                 {personas.map((persona) => (
                   <DropdownMenu.Item key={persona.id} className="persona-option" onSelect={() => setPersona(persona.id)}>

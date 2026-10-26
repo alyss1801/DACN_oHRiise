@@ -143,7 +143,8 @@ export function isDeferredModule(id: string) {
 }
 
 export function navigationFor(session: EffectiveSession) {
+  const probationSources = session.permissions.find((permission) => permission.resource === "probation")?.sources ?? [];
   return registry
-    .map((group) => ({ ...group, items: group.items.filter((item) => !isDeferredModule(item.id) && can(session, item.resource) && (item.id !== "team-probation" || ["team-lead", "product-lead"].includes(session.id)) && (item.id !== "hr-probation" || ["hr-total", "hr-branch"].includes(session.id))).map((item) => item.id === "notifications" ? { ...item, badge: undefined } : item) }))
+    .map((group) => ({ ...group, items: group.items.filter((item) => !isDeferredModule(item.id) && can(session, item.resource) && (item.id !== "team-probation" || probationSources.includes("relationship") && ["team", "department"].includes(session.effectiveScope)) && (item.id !== "hr-probation" || probationSources.includes("template") && ["department", "branch", "company"].includes(session.effectiveScope))).map((item) => item.id === "notifications" ? { ...item, badge: undefined } : item) }))
     .filter((group) => group.items.length > 0);
 }

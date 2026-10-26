@@ -32,6 +32,24 @@ export const permissionCatalog: PermissionDefinition[] = [
   { code: "reports.view", module: "Báo cáo", name: "Xem báo cáo", description: "Xem báo cáo tổng hợp trong phạm vi dữ liệu." },
   { code: "reports.export", module: "Báo cáo", name: "Xuất báo cáo", description: "Xuất báo cáo đã được cho phép.", dependency: "reports.view" },
   { code: "integration.configure", module: "Tích hợp", name: "Cấu hình tích hợp", description: "Quản lý kết nối dịch vụ doanh nghiệp." },
+  { code: "team.manage", module: "Đội ngũ", name: "Quản lý đội ngũ", description: "Xem đội ngũ, lịch và đánh giá thử việc trong phạm vi được giao." },
+  { code: "announcement.post.team", module: "Thông báo", name: "Đăng trong kênh nhóm", description: "Đăng thông báo cho nhóm trực tiếp." },
+  { code: "announcement.post.company", module: "Thông báo", name: "Đăng thông báo chung", description: "Đăng thông báo theo phạm vi HR hoặc Admin được cấp." },
+  { code: "hr.command.view", module: "Nhân sự", name: "Trung tâm HR", description: "Xem công việc và chỉ số HR trong phạm vi được cấp." },
+  { code: "hr.employee.manage", module: "Nhân sự", name: "Hồ sơ nhân sự", description: "Xem và cập nhật hồ sơ nhân sự." },
+  { code: "hr.onboarding.manage", module: "Nhân sự", name: "Onboarding", description: "Khởi tạo và xử lý onboarding." },
+  { code: "hr.probation.manage", module: "Nhân sự", name: "Thử việc", description: "Giao, đánh giá và quyết định thử việc." },
+  { code: "hr.contract.manage", module: "Nhân sự", name: "Quản lý hợp đồng", description: "Theo dõi và xử lý hợp đồng." },
+  { code: "hr.organization.manage", module: "Nhân sự", name: "Tổ chức", description: "Cập nhật cơ cấu tổ chức trong phạm vi được cấp." },
+  { code: "hr.offboarding.manage", module: "Nhân sự", name: "Offboarding", description: "Khởi tạo và xử lý quy trình nghỉ việc." },
+  { code: "hr.assets.manage", module: "Nhân sự", name: "Tài sản nhân sự", description: "Theo dõi và bàn giao tài sản." },
+  { code: "hr.attendance.manage", module: "Nhân sự", name: "Giám sát chấm công", description: "Đối soát chấm công theo phạm vi." },
+  { code: "hr.leave.manage", module: "Nhân sự", name: "Quản lý nghỉ phép", description: "Xử lý đơn phép ở bước HR." },
+  { code: "hr.timesheets.manage", module: "Nhân sự", name: "Bảng công", description: "Đối soát và chốt bảng công." },
+  { code: "hr.expense.approve", module: "Nhân sự", name: "Duyệt chi phí", description: "Xử lý đề nghị chi phí." },
+  { code: "hr.misa.configure", module: "Nhân sự", name: "CSV công nội bộ", description: "Cấu hình xuất dữ liệu công." },
+  { code: "hr.policies.manage", module: "Nhân sự", name: "Chính sách HR", description: "Cập nhật chính sách nhân sự." },
+  { code: "hr.recruitment.manage", module: "Nhân sự", name: "Tuyển dụng", description: "Theo dõi và xử lý ứng viên." },
   { code: "admin.accounts.manage", module: "Quản trị tài khoản", name: "Quản lý tài khoản", description: "Tạo, khóa và cập nhật định danh kỹ thuật.", protected: true },
   { code: "admin.permissions.assign", module: "Quản trị tài khoản", name: "Phân quyền tài khoản", description: "Gán mẫu quyền và quyền cá nhân.", dependency: "admin.accounts.manage", protected: true },
   { code: "admin.system.configure", module: "Cấu hình hệ thống", name: "Cấu hình hệ thống", description: "Quản lý cấu hình vận hành hệ thống.", protected: true },
@@ -39,10 +57,9 @@ export const permissionCatalog: PermissionDefinition[] = [
 
 export const initialTemplates: AccessTemplate[] = [
   template("tpl-employee", "Employee", "EMPLOYEE", "Quyền nền tảng bắt buộc cho mọi tài khoản.", "system", ["employee.self.read", "attendance.self.read", "leave.self.request"], ["employee.self.read", "attendance.self.read", "leave.self.request"], ["self"], 9),
-  template("tpl-team-lead", "Team Lead", "TEAM_LEAD", "Quản lý đội ngũ, phê duyệt và xem báo cáo team.", "system", ["employee.read", "attendance.read", "attendance.adjust", "leave.read", "leave.approve", "reports.view"], ["employee.read", "leave.approve"], ["team", "department"], 2),
-  template("tpl-hr-branch", "HR Branch", "HR_BRANCH", "Vận hành nhân sự theo phạm vi chi nhánh.", "system", ["employee.read", "employee.update", "attendance.read", "contract.read", "recruitment.candidate.read", "reports.view"], ["employee.read"], ["branch"], 1),
-  template("tpl-hr-head", "HR Head", "HR_HEAD", "Điều hành nghiệp vụ nhân sự trên toàn công ty.", "system", ["employee.read", "employee.update", "employee.export", "attendance.read", "attendance.export", "leave.read", "leave.approve", "contract.read", "contract.update", "recruitment.candidate.read", "reports.view", "reports.export"], ["employee.read"], ["department", "branch", "company"], 1),
-  template("tpl-system-admin", "System Admin", "SYSTEM_ADMIN", "Quản trị định danh và cấu hình kỹ thuật, không mặc định xem dữ liệu HR nhạy cảm.", "system", ["admin.accounts.manage", "admin.permissions.assign", "admin.system.configure", "integration.configure", "reports.view"], ["admin.accounts.manage", "admin.permissions.assign", "admin.system.configure"], ["company"], 0),
+  template("tpl-team-lead", "Team Lead", "TEAM_LEAD", "Đội ngũ và phê duyệt theo phạm vi được cấp.", "system", ["team.manage", "announcement.post.team", "employee.read", "attendance.read", "leave.read", "leave.approve", "reports.view"], ["team.manage"], ["team", "department"], 2),
+  template("tpl-hr", "HR", "HR", "Một vai trò HR; quyền và phạm vi cấu hình riêng cho từng tài khoản.", "system", ["announcement.post.company", "hr.command.view", "hr.employee.manage", "hr.onboarding.manage", "hr.probation.manage", "hr.contract.manage", "hr.organization.manage", "hr.offboarding.manage", "hr.assets.manage", "hr.attendance.manage", "hr.leave.manage", "hr.timesheets.manage", "hr.expense.approve", "hr.misa.configure", "hr.policies.manage", "hr.recruitment.manage", "employee.read", "employee.update", "employee.export", "attendance.read", "attendance.adjust", "attendance.export", "leave.read", "leave.approve", "contract.read", "contract.update", "recruitment.candidate.read", "reports.view", "reports.export"], ["hr.command.view"], ["department", "branch", "company"], 2),
+  template("tpl-system-admin", "Admin", "ADMIN", "Quản trị định danh, quyền và cấu hình hệ thống.", "system", ["admin.accounts.manage", "admin.permissions.assign", "admin.system.configure", "integration.configure", "announcement.post.company", "reports.view"], ["admin.accounts.manage", "admin.permissions.assign", "admin.system.configure"], ["company"], 1),
   template("tpl-project-reviewer", "Project Reviewer", "PROJECT_REVIEWER", "Rà soát tiến độ dự án và báo cáo liên quan.", "custom", ["project.read", "reports.view"], [], ["team", "department"], 0),
   template("tpl-recruitment-assistant", "Recruitment Assistant", "RECRUITMENT_ASSISTANT", "Hỗ trợ tuyển dụng và đánh giá ứng viên.", "custom", ["recruitment.candidate.read", "recruitment.ai.evaluate"], [], ["branch", "company"], 0),
   template("tpl-attendance-supervisor", "Attendance Supervisor", "ATTENDANCE_SUPERVISOR", "Theo dõi và điều chỉnh dữ liệu chấm công.", "custom", ["attendance.read", "attendance.adjust", "attendance.export"], [], ["department", "branch"], 0),
@@ -55,9 +72,9 @@ function template(id: string, name: string, code: string, description: string, t
 export function accountFromEmployee(person: HrEmployee, people: HrEmployee[], index: number, status: Account["status"] = "pending"): Account {
   const templateIds = ["tpl-employee"];
   if (person.id === "OH-0184" || person.id === "OH-0259") templateIds.push("tpl-team-lead");
-  if (person.id === "OH-0091") templateIds.push("tpl-hr-head");
-  if (person.id === "OH-0266") templateIds.push("tpl-hr-branch");
-  const scope: Account["scope"] = person.id === "OH-0091" ? { type: "company" } : person.id === "OH-0266" ? { type: "branch", target: person.branch } : templateIds.includes("tpl-team-lead") ? { type: "team", target: person.department } : { type: "self" };
+  if (person.id === "OH-0091" || person.id === "OH-0266") templateIds.push("tpl-hr");
+  if (person.id === "OH-0001") templateIds.push("tpl-system-admin");
+  const scope: Account["scope"] = person.id === "OH-0091" || person.id === "OH-0001" ? { type: "company" } : person.id === "OH-0266" ? { type: "branch", target: person.branch } : templateIds.includes("tpl-team-lead") ? { type: "team", target: person.primaryTeamId ?? person.department } : { type: "self" };
   return { id: `user-${index}`, employeeId: person.id, employeeCode: person.id, name: person.name, initials: person.initials, email: person.email, branch: person.branch, department: person.department, team: person.primaryTeamId ?? "—", position: person.position, level: "—", employmentType: person.employmentType, manager: people.find((item) => item.id === person.managerId)?.name ?? "Chưa gán", startDate: person.startDate, createdAt: person.startDate, status, templateIds, overrides: {}, scope, authMethod: "Demo cục bộ", mfa: false, passwordChangedAt: "Chưa thiết lập", activeSessions: 0, failedLogins: 0 };
 }
 
@@ -66,5 +83,5 @@ export const initialAccounts: Account[] = initialHrState.employees.map((person, 
 export const initialAuditEvents: AuditEvent[] = [
   { id: "audit-1", accountId: "user-2", actor: "Dữ liệu mẫu", action: "Gán mẫu Team Lead", timestamp: "14/10/2026 · 16:42", previousValue: "Employee", newValue: "Employee + Team Lead" },
   { id: "audit-2", accountId: "user-1", actor: "Dữ liệu mẫu", action: "Tạo tài khoản HR", timestamp: "05/01/2026 · 09:10", previousValue: "—", newValue: "Đang hoạt động" },
-  { id: "audit-3", templateId: "tpl-hr-branch", actor: "Nguyễn Thu Hà", action: "Cập nhật mẫu quyền", timestamp: "13/10/2026 · 11:08", previousValue: "Phiên bản 1", newValue: "Phiên bản 2" },
+  { id: "audit-3", templateId: "tpl-hr", actor: "Nguyễn Thu Hà", action: "Cập nhật mẫu quyền", timestamp: "13/10/2026 · 11:08", previousValue: "Phiên bản 1", newValue: "Phiên bản 2" },
 ];

@@ -62,6 +62,7 @@ export const initialHrState: HrState = {
     { id: "OH-0218", name: "Phạm Gia Bảo", initials: "GB", email: "bao.pham@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Software Engineer", managerId: "OH-0259", primaryTeamId: "TEAM-PE", employmentType: "Toàn thời gian", startDate: "2026-10-01", status: "probation", phone: "090 000 0218", address: "TP. Hồ Chí Minh" },
     { id: "OH-0301", name: "Trần Minh Anh", initials: "MA", email: "anh.tran@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Data Engineer", managerId: "OH-0259", primaryTeamId: "TEAM-DP", employmentType: "Toàn thời gian", startDate: "2026-10-06", status: "probation", phone: "090 000 0301", address: "TP. Hồ Chí Minh" },
     { id: "OH-0302", name: "Ngô Khánh Linh", initials: "KL", email: "linh.ngo@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Data Analyst", managerId: "OH-0259", primaryTeamId: "TEAM-DP", employmentType: "Toàn thời gian", startDate: "2025-07-14", status: "active", phone: "090 000 0302", address: "TP. Hồ Chí Minh" },
+    { id: "OH-0001", name: "Lê Hải Nam", initials: "HN", email: "nam.le@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "System Administrator", employmentType: "Toàn thời gian", startDate: "2022-01-10", status: "active", phone: "090 000 0001", address: "TP. Hồ Chí Minh" },
   ],
   organization: {
     departments: [

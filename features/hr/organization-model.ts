@@ -18,7 +18,7 @@ const failure = (error: string): OrganizationResult => ({ ok: false, error });
 const clean = (value: string) => value.trim();
 const uid = (prefix: string) => `${prefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 const departmentPeople = (state: HrState, department: OrgDepartment) => state.employees.filter((person) => person.status !== "inactive" && person.department === department.name && person.branch === department.branch);
-const canEditBranch = (session: EffectiveSession, branch: string) => session.id === "hr-total" && session.effectiveScope === "company" || session.id === "hr-branch" && session.effectiveScope === "branch" && session.branch === branch;
+const canEditBranch = (session: EffectiveSession, branch: string) => session.effectiveScope === "company" || session.effectiveScope === "branch" && (session.scopeTarget ?? session.branch) === branch;
 
 export function managerIsEligible(state: Pick<HrState, "employees" | "organization">, managerId: string, branch: string) {
   const person = state.employees.find((item) => item.id === managerId);
@@ -66,7 +66,7 @@ function record(state: HrState, organization: HrState["organization"], employees
 function validEffectiveDate(date: string) { return /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= hrToday(); }
 
 export function applyOrganizationCommand(state: HrState, command: OrganizationCommand, session: EffectiveSession): OrganizationResult {
-  if (!can(session, "organization", "edit") || !["hr-total", "hr-branch"].includes(session.id)) return failure("Bạn không có quyền quản trị cơ cấu tổ chức.");
+  if (!can(session, "organization", "edit")) return failure("Bạn không có quyền quản trị cơ cấu tổ chức.");
   const organization = state.organization;
   const departments = organization.departments;
   const teams = organization.teams;

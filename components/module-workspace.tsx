@@ -95,6 +95,8 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (!permission || !can(session, resolvedModuleId)) {
     return <AccessDenied onHome={onHome} />;
   }
+  if (moduleId.startsWith("team-probation") && (!permission.sources.includes("relationship") || !["team", "department"].includes(session.effectiveScope))) return <AccessDenied onHome={onHome} />;
+  if (moduleId.startsWith("hr-probation") && (!permission.sources.includes("template") || !["department", "branch", "company"].includes(session.effectiveScope))) return <AccessDenied onHome={onHome} />;
 
   if (isAccessWorkspace) return <IamWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
 

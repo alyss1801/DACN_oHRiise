@@ -46,7 +46,7 @@ export function OrganizationWorkspace({ onNavigate }: { onNavigate: (id: string)
   const [memberPrimary, setMemberPrimary] = useState(false);
   const [removeMemberId, setRemoveMemberId] = useState("");
   const [deactivateConfirm, setDeactivateConfirm] = useState(false);
-  const canManage = can("organization", "edit") && ((session.id === "hr-total" && session.effectiveScope === "company") || (session.id === "hr-branch" && session.effectiveScope === "branch"));
+  const canManage = can("organization", "edit") && ["company", "branch"].includes(session.effectiveScope);
   const ownId = personaEmployeeIds[session.id] ?? "";
   const visibleDepartments = organization.departments.filter((department) => {
     if (session.effectiveScope === "company") return true;

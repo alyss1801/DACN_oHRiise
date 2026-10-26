@@ -88,7 +88,7 @@ const initialRequests: BusinessRequest[] = [
 ];
 
 const initialAccounts: DemoAccount[] = [
-  { id: "OH-0091", initials: "NL", name: "Nguyễn Thanh Lan", email: "lan.nguyen@ohriise.vn", department: "Nhân sự", branch: "HCM-Q1", template: "HR Tổng", status: "active", mfa: true, lastLogin: "07/10 · 10:31" },
+  { id: "OH-0091", initials: "NL", name: "Nguyễn Thanh Lan", email: "lan.nguyen@ohriise.vn", department: "Nhân sự", branch: "HCM-Q1", template: "HR", status: "active", mfa: true, lastLogin: "07/10 · 10:31" },
   { id: "OH-0184", initials: "TQ", name: "Trần Minh Quân", email: "quan.tran@ohriise.vn", department: "Sản phẩm", branch: "HCM-Q1", template: "Employee", status: "active", mfa: true, lastLogin: "07/10 · 09:52" },
   { id: "OH-0248", initials: "NH", name: "Nguyễn Thu Hà", email: "ha.nguyen@ohriise.vn", department: "Sản phẩm", branch: "HCM-Q1", template: "Employee", status: "active", mfa: false, lastLogin: "07/10 · 08:37" },
   { id: "OH-0259", initials: "BT", name: "Bùi Thanh Tâm", email: "tam.bui@ohriise.vn", department: "Công nghệ thông tin", branch: "HCM-TD", template: "Employee + Team Lead", status: "active", mfa: true, lastLogin: "07/10 · 08:24" },
@@ -96,7 +96,7 @@ const initialAccounts: DemoAccount[] = [
 ];
 
 const initialReviews: AccessReview[] = [
-  { id: "AR-2026-018", title: "Cấp quyền export payroll", accountId: "OH-0091", account: "Nguyễn Thanh Lan · HR Tổng", requester: "Admin A · Lê Hải Nam", time: "07/10 · 09:41", risk: "Cao", reason: "Đối soát báo cáo chi phí lương quý III.", current: "view · masked", proposed: "view + export · visible", status: "pending" },
+  { id: "AR-2026-018", title: "Cấp quyền export payroll", accountId: "OH-0091", account: "Nguyễn Thanh Lan · HR", requester: "Admin A · Lê Hải Nam", time: "07/10 · 09:41", risk: "Cao", reason: "Đối soát báo cáo chi phí lương quý III.", current: "view · masked", proposed: "view + export · visible", status: "pending" },
   { id: "AR-2026-017", title: "Bật đồng bộ MISA", accountId: "OH-0248", account: "Nguyễn Thu Hà · Employee", requester: "Admin A · Lê Hải Nam", time: "06/10 · 16:22", risk: "Cao", reason: "Hỗ trợ xử lý dữ liệu chốt công có thời hạn.", current: "no access", proposed: "view + configure · company", status: "pending" },
 ];
 

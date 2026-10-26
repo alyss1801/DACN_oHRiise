@@ -74,9 +74,9 @@ export function canAccessScopedRecord(
   currentEmployeeId = personaEmployeeIds[session.id] ?? "",
 ) {
   if (session.effectiveScope === "company") return true;
-  if (session.effectiveScope === "branch") return record.branch === session.branch;
-  if (session.effectiveScope === "department") return record.department === session.department;
-  if (session.effectiveScope === "team") return Boolean(currentEmployeeId) && (record.employeeId === currentEmployeeId || record.managerId === currentEmployeeId || (session.id === "team-lead" && record.team === "TEAM-DP"));
+  if (session.effectiveScope === "branch") return record.branch === (session.scopeTarget ?? session.branch);
+  if (session.effectiveScope === "department") return record.department === (session.scopeTarget ?? session.department);
+  if (session.effectiveScope === "team") return Boolean(currentEmployeeId && (record.employeeId === currentEmployeeId || record.managerId === currentEmployeeId || record.team && record.team === session.scopeTarget));
   if (session.effectiveScope === "assigned") return record.employeeId === currentEmployeeId;
   return Boolean(currentEmployeeId) && record.employeeId === currentEmployeeId;
 }

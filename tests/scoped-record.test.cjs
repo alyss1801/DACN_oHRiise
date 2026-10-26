@@ -9,13 +9,13 @@ const { canAccessScopedRecord } = require("../lib/authorization/engine.ts");
 
 test("demo self scope follows persona identity instead of a fixed employee", () => {
   assert.equal(canAccessScopedRecord({ id: "employee", effectiveScope: "self" }, { employeeId: "OH-0248" }), true);
-  assert.equal(canAccessScopedRecord({ id: "product-lead", effectiveScope: "self" }, { employeeId: "OH-0184" }), true);
-  assert.equal(canAccessScopedRecord({ id: "product-lead", effectiveScope: "self" }, { employeeId: "OH-0248" }), false);
+  assert.equal(canAccessScopedRecord({ id: "team-lead", effectiveScope: "self" }, { employeeId: "OH-0184" }), true);
+  assert.equal(canAccessScopedRecord({ id: "team-lead", effectiveScope: "self" }, { employeeId: "OH-0248" }), false);
   assert.equal(canAccessScopedRecord({ id: "system-admin", effectiveScope: "self" }, { employeeId: "OH-0248" }), false);
 });
 
 test("team scope uses manager relationship and branch scope does not cross branch", () => {
-  assert.equal(canAccessScopedRecord({ id: "product-lead", effectiveScope: "team" }, { employeeId: "OH-0248", managerId: "OH-0184" }), true);
-  assert.equal(canAccessScopedRecord({ id: "product-lead", effectiveScope: "team" }, { employeeId: "OH-0271", managerId: "OH-0259" }), false);
-  assert.equal(canAccessScopedRecord({ id: "hr-branch", effectiveScope: "branch", branch: "HCM-Q1" }, { employeeId: "OH-0204", branch: "HN-CG" }), false);
+  assert.equal(canAccessScopedRecord({ id: "team-lead", effectiveScope: "team" }, { employeeId: "OH-0248", managerId: "OH-0184" }), true);
+  assert.equal(canAccessScopedRecord({ id: "team-lead", effectiveScope: "team" }, { employeeId: "OH-0271", managerId: "OH-0259" }), false);
+  assert.equal(canAccessScopedRecord({ id: "hr-total", effectiveScope: "branch", branch: "HCM-Q1", scopeTarget: "HCM-Q1" }, { employeeId: "OH-0204", branch: "HN-CG" }), false);
 });

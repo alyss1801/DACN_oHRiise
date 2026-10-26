@@ -43,6 +43,14 @@ type IamContextValue = {
 
 const IamContext = createContext<IamContextValue | null>(null);
 const storageKey = "ohriise-iam-demo-v1";
+const legacyHrTemplates = new Set(["tpl-hr-head", "tpl-hr-branch"]);
+function normalizeAccessSnapshot(accounts: Account[], templates: AccessTemplate[]) {
+  const hrTemplate = templates.find((item) => item.id === "tpl-hr") ?? initialTemplates.find((item) => item.id === "tpl-hr")!;
+  const migratedTemplates = [...templates.filter((item) => !legacyHrTemplates.has(item.id) && item.id !== "tpl-hr").map((item) => ["tpl-team-lead", "tpl-system-admin"].includes(item.id) && item.version === 1 ? initialTemplates.find((seed) => seed.id === item.id) ?? item : item), hrTemplate];
+  const migratedAccounts = accounts.map((account) => ({ ...account, templateIds: [...new Set(account.templateIds.map((id) => legacyHrTemplates.has(id) ? "tpl-hr" : id))] }));
+  for (const seed of initialAccounts.filter((item) => item.employeeId === "OH-0001")) if (!migratedAccounts.some((item) => item.employeeId === seed.employeeId)) migratedAccounts.push(seed);
+  return { accounts: migratedAccounts, templates: migratedTemplates };
+}
 
 export function IamProvider({ children }: { children: React.ReactNode }) {
   const { session, can } = useSession();
@@ -59,8 +67,9 @@ export function IamProvider({ children }: { children: React.ReactNode }) {
     try {
       const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "null");
       if (parsed?.version === 1 && Array.isArray(parsed.accounts) && parsed.accounts.every((item: Account) => item.employeeId) && Array.isArray(parsed.templates)) {
+        const normalized = normalizeAccessSnapshot(parsed.accounts, parsed.templates);
         // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore browser-only demo state after hydration.
-        setAccounts(parsed.accounts); setTemplates(parsed.templates);
+        setAccounts(normalized.accounts); setTemplates(normalized.templates);
         if (Array.isArray(parsed.auditEvents)) setAuditEvents(parsed.auditEvents);
         if (Array.isArray(parsed.accessReviews)) setAccessReviews(parsed.accessReviews);
         if (Array.isArray(parsed.temporaryDelegations)) setTemporaryDelegations(parsed.temporaryDelegations);
@@ -77,7 +86,8 @@ export function IamProvider({ children }: { children: React.ReactNode }) {
       try {
         const parsed = JSON.parse(event.newValue);
         if (parsed?.version !== 1 || !Array.isArray(parsed.accounts) || !parsed.accounts.every((item: Account) => item.employeeId) || !Array.isArray(parsed.templates)) return;
-        setAccounts(parsed.accounts); setTemplates(parsed.templates);
+        const normalized = normalizeAccessSnapshot(parsed.accounts, parsed.templates);
+        setAccounts(normalized.accounts); setTemplates(normalized.templates);
         if (Array.isArray(parsed.auditEvents)) setAuditEvents(parsed.auditEvents);
         if (Array.isArray(parsed.accessReviews)) setAccessReviews(parsed.accessReviews);
         if (Array.isArray(parsed.temporaryDelegations)) setTemporaryDelegations(parsed.temporaryDelegations);
@@ -277,7 +287,7 @@ export function IamProvider({ children }: { children: React.ReactNode }) {
     const templateIds = draft?.accountId === account.id ? draft.templateIds : account.templateIds;
     const overrides = draft?.accountId === account.id ? draft.overrides : account.overrides;
     return permissionCatalog.map((permission) => {
-      const sources = templates.filter((template) => templateIds.includes(template.id) && template.permissionCodes.includes(permission.code)).map((template) => template.name);
+      const sources = templates.filter((template) => template.status === "active" && templateIds.includes(template.id) && template.permissionCodes.includes(permission.code)).map((template) => template.name);
       const override: PermissionOverride = overrides[permission.code] ?? "inherit";
       const protectedGrant = permission.protected === true && sources.length > 0;
       const allowed = protectedGrant || override === "allow" || (override !== "deny" && sources.length > 0);
