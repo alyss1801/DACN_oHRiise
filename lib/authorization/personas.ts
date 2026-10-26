@@ -60,6 +60,7 @@ const definitions: PersonaDefinition[] = [
       grant("probation", ["view", "edit"], "team", "relationship"),
       grant("team", ["view"], "team", "relationship"),
       grant("team-calendar", ["view"], "team", "relationship"),
+      grant("notifications", ["create"], "team", "relationship"),
     ],
     scopeConstraints: ["team", "branch"],
     sensitiveFields: commonFields,
@@ -79,6 +80,7 @@ const definitions: PersonaDefinition[] = [
       grant("organization", ["view"], "team", "relationship"),
       grant("approvals", ["view", "approve"], "team", "relationship"),
       grant("team-calendar", ["view"], "team", "relationship"),
+      grant("notifications", ["create"], "team", "relationship"),
       grant("ai-wfh", ["view", "edit"], "team", "relationship"),
       grant("expenses.review", ["view", "approve"], "team", "delegation", "2026-10-16"),
     ],
@@ -95,6 +97,7 @@ const definitions: PersonaDefinition[] = [
     department: "Nhân sự",
     grants: [
       ...baseEmployee,
+      grant("notifications", ["create"], "company", "template"),
       grant("ai-wfh", ["view"], "self", "base"),
       grant("hr-command", ["view"], "company", "template"),
       grant("hr-leave", ["view", "edit", "approve"], "company", "template"),
@@ -132,6 +135,7 @@ const definitions: PersonaDefinition[] = [
     department: "Nhân sự",
     grants: [
       ...baseEmployee,
+      grant("notifications", ["create"], "branch", "template"),
       grant("ai-wfh", ["view"], "self", "base"),
       grant("hr-command", ["view"], "branch", "template"),
       grant("hr-leave", ["view", "edit", "approve"], "branch", "template"),
@@ -167,6 +171,7 @@ const definitions: PersonaDefinition[] = [
     department: "Nhân sự",
     grants: [
       ...baseEmployee,
+      grant("notifications", ["create"], "company", "template"),
       grant("ai-wfh", ["view"], "self", "base"),
       grant("employees", ["view"], "company", "template"),
       grant("onboarding", ["view", "create"], "company", "template"),
@@ -185,6 +190,7 @@ const definitions: PersonaDefinition[] = [
     department: "Nhân sự",
     grants: [
       ...baseEmployee,
+      grant("notifications", ["create"], "company", "template"),
       grant("ai-wfh", ["view"], "self", "base"),
       grant("employees", ["view"], "company", "template"),
       grant("timesheets", ["view", "edit", "approve", "export"], "company", "template"),
@@ -213,6 +219,7 @@ const definitions: PersonaDefinition[] = [
     department: "Công nghệ thông tin",
     grants: [
       ...baseEmployee,
+      grant("notifications", ["create"], "company", "template"),
       grant("ai-wfh", ["view"], "self", "base"),
       grant("admin-overview", ["view"], "company", "template"),
       grant("branches-gps", ["view", "create", "edit", "configure"], "company", "template"),

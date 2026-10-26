@@ -18,6 +18,7 @@ import { IamProvider, useIam } from "@/features/admin/iam/iam-context";
 import { HrDemoProvider, useHrDemo } from "@/features/hr/hr-demo-context";
 import { LeaveDemoProvider, useLeaveDemo } from "@/features/leave/leave-demo-context";
 import { WfhDemoProvider, useWfhDemo } from "@/features/wfh/wfh-demo-context";
+import { CommunicationsProvider, useCommunications } from "@/features/communications/communications-context";
 import { ModuleVisualProvider } from "@/features/employee/workspace-frame";
 import { SessionProvider, useSession } from "@/features/session/session-context";
 import { navigationFor } from "@/lib/navigation";
@@ -30,10 +31,10 @@ export function ProductDemo({ initialModule = "home" }: { initialModule?: string
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <DemoClockProvider><DemoDataProvider><WfhDemoProvider>
         <SessionProvider>
-          <HrDemoProvider><LeaveDemoProvider><IamProvider>
+          <HrDemoProvider><CommunicationsProvider><LeaveDemoProvider><IamProvider>
             {signedIn ? <AuthenticatedProduct initialModule={initialModule} onSignOut={() => setSignedIn(false)} /> : <LoginScreen onSignIn={() => setSignedIn(true)} />}
             <Toaster theme="light" position="bottom-right" richColors closeButton />
-          </IamProvider></LeaveDemoProvider></HrDemoProvider>
+          </IamProvider></LeaveDemoProvider></CommunicationsProvider></HrDemoProvider>
         </SessionProvider>
       </WfhDemoProvider></DemoDataProvider></DemoClockProvider>
     </ThemeProvider>
@@ -46,6 +47,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
   const { resetLeaveDemo } = useLeaveDemo();
   const { resetWfhDemo } = useWfhDemo();
   const { resetBusinessRequests } = useDemoData();
+  const { resetCommunicationsDemo } = useCommunications();
   const clock = useDemoClock();
   const { hasUnsavedDraft, assignmentDraft, templateDraft, applyAssignment, discardAssignment, saveTemplateDraft, discardTemplateDraft, resetIamDemo } = useIam();
   const [activeId, setActiveId] = useState(normalizeModuleId(initialModule));
@@ -109,7 +111,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
       <div className="app-main">
         <TopBar title={activeTitle} visual={moduleVisual} onMenu={() => setMobileOpen(true)} onCommand={() => setCommandOpen(true)} onNavigate={navigate} />
         <div className="demo-clock-bar"><label>Đồng hồ nghiệp vụ <select value={clock.mode} onChange={(event) => clock.setMode(event.target.value as "scenario" | "real")}><option value="scenario">Ngày kịch bản</option><option value="real">Thời gian thực</option></select></label>{clock.mode === "scenario" && <input type="date" aria-label="Ngày kịch bản" value={clock.scenarioDate} onChange={(event) => clock.setScenarioDate(event.target.value)} />}{session.id === "system-admin" && <button type="button" onClick={() => setConfirmReset(true)}>Đặt lại HR · phép · WFH · IAM</button>}</div>
-        {confirmReset && <section className="demo-reset-confirm" aria-label="Xác nhận đặt lại dữ liệu demo"><div><strong>Đặt lại dữ liệu HR, nghỉ phép, WFH và IAM?</strong><span>Đặt lại hồ sơ HR, đơn phép, đơn/phiên WFH và IAM về seed demo. Không xóa dữ liệu trình duyệt khác, không ảnh hưởng backend.</span></div><button className="secondary-button" onClick={() => setConfirmReset(false)}>Hủy</button><button className="primary-button" onClick={() => { resetHrDemo(); resetLeaveDemo(); resetBusinessRequests(); resetWfhDemo(); resetIamDemo(); setConfirmReset(false); navigate("home", true); }}>Xác nhận đặt lại</button></section>}
+        {confirmReset && <section className="demo-reset-confirm" aria-label="Xác nhận đặt lại dữ liệu demo"><div><strong>Đặt lại dữ liệu demo?</strong><span>Hồ sơ HR, đơn phép, WFH, IAM, email và thông báo sẽ trở về dữ liệu mẫu.</span></div><button className="secondary-button" onClick={() => setConfirmReset(false)}>Hủy</button><button className="primary-button" onClick={() => { resetHrDemo(); resetLeaveDemo(); resetBusinessRequests(); resetWfhDemo(); resetIamDemo(); resetCommunicationsDemo(); setConfirmReset(false); navigate("home", true); }}>Xác nhận đặt lại</button></section>}
         <main className="page-content">
           {pendingNavigation && <section className="iam-navigation-guard"><div><strong>Bạn có thay đổi chưa lưu</strong><span>Lưu hoặc hủy bản nháp trước khi rời khỏi không gian hiện tại.</span></div><button className="secondary-button" onClick={() => setPendingNavigation(null)}>Tiếp tục chỉnh sửa</button><button className="secondary-button" onClick={() => { discardAssignment(); discardTemplateDraft(); const target = pendingNavigation; setPendingNavigation(null); navigate(target, true); }}>Hủy thay đổi & rời đi</button><button className="primary-button" onClick={() => { if (assignmentDraft) applyAssignment(); if (templateDraft) saveTemplateDraft(); const target = pendingNavigation; setPendingNavigation(null); navigate(target, true); }}>Lưu & rời đi</button></section>}
           <AnimatePresence initial={false}>

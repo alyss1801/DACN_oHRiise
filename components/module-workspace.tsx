@@ -115,7 +115,7 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (resolvedModuleId === "profile") return <ProfileWorkspace />;
   if (moduleId === "schedule") return <SelfAttendanceWorkspace key={moduleId} mode="schedule" onNavigate={onNavigate} />;
   if (resolvedModuleId === "attendance") return <SelfAttendanceWorkspace key={moduleId} mode="attendance" initialRecordId={moduleId.split("/")[1]} onNavigate={onNavigate} />;
-  if (moduleId === "email") return <EmailWorkspace onNavigate={onNavigate} />;
+  if (moduleId === "email") return <EmailWorkspace key={session.id} />;
   if (moduleId === "contracts") return <ContractWorkspace />;
   if (moduleId === "offboarding-status") return <OffboardingStatusWorkspace />;
   if (moduleId === "payslip") return <PayslipWorkspace />;

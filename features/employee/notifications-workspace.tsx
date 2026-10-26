@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CheckCheck, FileText } from "lucide-react";
+import { CheckCheck, FileText } from "lucide-react";
 import { useHrDemo } from "@/features/hr/hr-demo-context";
 import { useLeaveDemo } from "@/features/leave/leave-demo-context";
 import { useSession } from "@/features/session/session-context";
 import { useDemoData } from "@/features/demo/demo-data-context";
 import { useWfhDemo } from "@/features/wfh/wfh-demo-context";
 import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
-import { EmptyState, StatusPill, WorkspaceHeader } from "./workspace-frame";
+import { useCommunications } from "@/features/communications/communications-context";
+import { AnnouncementChannels } from "@/features/communications/announcement-channels";
+import { EmptyState, WorkspaceHeader } from "./workspace-frame";
 
-type Notice = { id: string; category: string; title: string; message: string; route: string; at: string; tone: string };
+type Notice = { id: string; category: string; title: string; message: string; route: string; at: string; tone: string; channelId?: string; announcementId?: string };
 const readKey = (persona: string) => `ohriise-notification-read-v1-${persona}`;
 
 export function NotificationsWorkspace({ onNavigate }: { onNavigate: (id: string) => void }) {
@@ -19,8 +21,11 @@ export function NotificationsWorkspace({ onNavigate }: { onNavigate: (id: string
   const { requests } = useDemoData();
   const { store: wfhStore } = useWfhDemo();
   const { cases, assets, contracts, employees, attendance, attendanceExplanations } = useHrDemo();
+  const { store: communicationStore, account, channels } = useCommunications();
   const [readIds, setReadIds] = useState<string[]>([]);
   const [tab, setTab] = useState("Tất cả");
+  const [channelId, setChannelId] = useState("");
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState("");
   const selfId = personaEmployeeIds[session.id];
   useEffect(() => {
     let restored: string[] = [];
@@ -31,6 +36,7 @@ export function NotificationsWorkspace({ onNavigate }: { onNavigate: (id: string
     window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync);
   }, [session.id]);
   const notices: Notice[] = [];
+  for (const item of communicationStore.announcements.filter((entry) => channels.some((channel) => channel.id === entry.channelId) && entry.recipientKeys.includes(account.key) && entry.actorKey !== account.key)) notices.push({ id: `announcement-${item.id}`, category: channels.find((channel) => channel.id === item.channelId)?.name ?? "Thông báo", title: item.title, message: item.body, route: "notifications", at: item.at, tone: "blue", channelId: item.channelId, announcementId: item.id });
   for (const request of store.requests) {
     const person = employees.find((item) => item.id === request.employeeId);
     if (selfId === request.employeeId) notices.push({ id: `leave-owner-${request.id}-${request.status}`, category: "Nghỉ phép", title: `Đơn ${request.id} · ${request.status === "approved" ? "Đã duyệt" : request.status === "rejected" ? "Từ chối" : request.status === "cancelled" ? "Đã hủy" : "Đang xử lý"}`, message: `${request.from} – ${request.to} · ${request.days} ngày.`, route: "leave", at: request.events.at(-1)?.at ?? request.submittedAt, tone: "blue" });
@@ -65,5 +71,5 @@ export function NotificationsWorkspace({ onNavigate }: { onNavigate: (id: string
   const visible = tab === "Chưa đọc" ? notices.filter((item) => !readIds.includes(item.id)) : notices;
   const unread = notices.filter((item) => !readIds.includes(item.id)).length;
   const mark = (ids: string[]) => { const next = [...new Set([...readIds, ...ids])]; setReadIds(next); window.localStorage.setItem(readKey(session.id), JSON.stringify(next)); };
-  return <div className="page-stack"><WorkspaceHeader eyebrow="THÔNG BÁO TRONG ỨNG DỤNG" title="Thông báo" description="Chỉ hiện công việc và trạng thái liên quan persona demo hiện tại." action={<button className="secondary-button" disabled={!unread} onClick={() => mark(notices.map((item) => item.id))}><CheckCheck size={15} /> Đánh dấu đã đọc</button>} /><section className="notifications-layout"><article className="panel notifications-main"><div className="notification-tabs">{["Tất cả", "Chưa đọc"].map((item) => <button className={tab === item ? "is-active" : ""} onClick={() => setTab(item)} key={item}>{item}{item === "Chưa đọc" && <b>{unread}</b>}</button>)}</div>{visible.length ? <div className="notification-list">{visible.map((item) => <button key={item.id} className={!readIds.includes(item.id) ? "unread" : ""} onClick={() => { mark([item.id]); onNavigate(item.route); }}><span className={`notification-icon ${item.tone}`}><FileText size={16} /></span><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.message}</p></div><time>{new Date(item.at).toLocaleDateString("vi-VN")}</time>{!readIds.includes(item.id) && <i />}</button>)}</div> : <EmptyState title="Không có thông báo phù hợp" description="Khi có công việc liên quan, thông báo sẽ xuất hiện tại đây." />}</article><aside className="panel notification-settings"><div className="panel-heading compact"><div><span className="eyebrow">KÊNH NHẬN</span><h3>Phạm vi demo</h3></div><Bell size={18} /></div><p>Trạng thái đọc lưu trong trình duyệt và đồng bộ giữa các tab cùng origin.</p><StatusPill tone="neutral">In-app cục bộ</StatusPill><p>Email và push chưa cấu hình; hệ thống không gửi tin ra ngoài.</p></aside></section></div>;
+  return <div className="page-stack"><WorkspaceHeader title="Thông báo" action={<button className="secondary-button" disabled={!unread} onClick={() => mark(notices.map((item) => item.id))}><CheckCheck size={15} /> Đánh dấu đã đọc</button>} /><AnnouncementChannels channelId={channelId} onSelect={setChannelId} selectedAnnouncementId={selectedAnnouncementId} /><section className="notifications-layout"><article className="panel notifications-main"><div className="notification-tabs">{["Tất cả", "Chưa đọc"].map((item) => <button className={tab === item ? "is-active" : ""} onClick={() => setTab(item)} key={item}>{item}{item === "Chưa đọc" && <b>{unread}</b>}</button>)}</div>{visible.length ? <div className="notification-list">{visible.map((item) => <button key={item.id} className={!readIds.includes(item.id) ? "unread" : ""} onClick={() => { mark([item.id]); if (item.channelId) { setChannelId(item.channelId); setSelectedAnnouncementId(item.announcementId ?? ""); document.querySelector(".announcement-shell")?.scrollIntoView({ behavior: "smooth" }); } else onNavigate(item.route); }}><span className={`notification-icon ${item.tone}`}><FileText size={16} /></span><div><span>{item.category}</span><strong>{item.title}</strong><p>{item.message}</p></div><time>{new Date(item.at).toLocaleDateString("vi-VN")}</time>{!readIds.includes(item.id) && <i />}</button>)}</div> : <EmptyState title="Không có thông báo phù hợp" description="Khi có công việc liên quan, thông báo sẽ xuất hiện tại đây." />}</article><aside className="panel notification-settings"><div className="panel-heading compact"><div><span className="eyebrow">EMAIL</span><h3>Bản sao thông báo</h3></div></div><p>Người có quyền đăng có thể gửi thêm bản sao tới hộp thư demo của các thành viên kênh.</p><button className="row-action" onClick={() => onNavigate("email")}>Mở Email</button></aside></section></div>;
 }

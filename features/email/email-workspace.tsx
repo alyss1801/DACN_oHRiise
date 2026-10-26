@@ -1,100 +1,75 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useState } from "react";
-import { Archive, Bot, ChevronLeft, Download, FileText, Inbox, MailPlus, Paperclip, Search, Send, Star, Trash2, UsersRound } from "lucide-react";
+import { useState } from "react";
+import { Archive, FileText, Inbox, MailPlus, RotateCcw, Search, Send, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useSession } from "@/features/session/session-context";
-import { FormField, StatusPill, WorkflowDialog, WorkspaceHeader } from "@/features/employee/workspace-frame";
-
-type MailMessage = {
-  id: number;
-  sender: string;
-  initials: string;
-  subject: string;
-  preview: string;
-  time: string;
-  mailbox: "inbox" | "sent" | "draft";
-  unread?: boolean;
-  starred?: boolean;
-  attachment?: string;
-  body: string[];
-};
-
-const seedMessages: MailMessage[] = [
-  { id: 1, sender: "Trần Minh Quân", initials: "TQ", subject: "Kế hoạch sprint 42 và lịch WFH", preview: "Mình đã cập nhật các đầu việc ưu tiên cho tuần tới...", time: "10:24", mailbox: "inbox", unread: true, starred: true, body: ["Chào Hà,", "Mình đã cập nhật các đầu việc ưu tiên cho sprint 42. Ngày WFH thứ Ba đã được ghi nhận; vui lòng hoàn tất Daily Report trước 18:00.", "Cảm ơn bạn."] },
-  { id: 2, sender: "HR Operations", initials: "HR", subject: "Phụ lục Hybrid Working 2026", preview: "Tài liệu chính sách đã được cập nhật...", time: "09:08", mailbox: "inbox", unread: true, attachment: "Hybrid-Working-2026.pdf", body: ["Chào bạn,", "Tài liệu chính sách Hybrid Working 2026 đã được cập nhật. Vui lòng đọc và xác nhận trước ngày 15/10."] },
-  { id: 3, sender: "Lê Hoàng Đức", initials: "LĐ", subject: "Re: Xác nhận đổi ca 14/10", preview: "Mình xác nhận có thể nhận ca này...", time: "Hôm qua", mailbox: "inbox", body: ["Chào Hà,", "Mình xác nhận có thể nhận ca ngày 14/10. Bạn cứ gửi yêu cầu để Team Lead phê duyệt nhé."] },
-  { id: 4, sender: "talent@candidate.vn", initials: "TA", subject: "Ứng tuyển Senior Backend Engineer", preview: "Em gửi CV ứng tuyển vị trí REQ-2026-041...", time: "06/10", mailbox: "inbox", attachment: "Nguyen-Van-An-CV.pdf", body: ["Chào đội ngũ tuyển dụng oHRiise,", "Em gửi CV ứng tuyển vị trí Senior Backend Engineer. Mong nhận được phản hồi từ công ty."] },
-  { id: 5, sender: "Nguyễn Thu Hà", initials: "NH", subject: "Design review · Employee Home", preview: "Tổng hợp thay đổi sau phiên review...", time: "05/10", mailbox: "sent", body: ["Chào team,", "Mình gửi tổng hợp thay đổi sau phiên review Employee Home và các trạng thái responsive."] },
-  { id: 6, sender: "Bản nháp", initials: "DR", subject: "Góp ý onboarding checklist", preview: "Bổ sung bước xác nhận thiết bị...", time: "04/10", mailbox: "draft", body: ["Bổ sung bước xác nhận thiết bị trước ngày bắt đầu..."] },
-];
+import { useCommunications } from "@/features/communications/communications-context";
+import { mailbox } from "@/features/communications/communications-model";
+import type { MailMessage } from "@/features/communications/communications-model";
+import { FormField, WorkflowDialog, WorkspaceHeader } from "@/features/employee/workspace-frame";
 
 const folders = [
   { id: "inbox", label: "Hộp thư đến", icon: Inbox },
-  { id: "starred", label: "Đã gắn sao", icon: Star },
+  { id: "starred", label: "Gắn sao", icon: Star },
   { id: "sent", label: "Đã gửi", icon: Send },
   { id: "draft", label: "Bản nháp", icon: FileText },
+  { id: "archive", label: "Lưu trữ", icon: Archive },
+  { id: "trash", label: "Thùng rác", icon: Trash2 },
 ] as const;
+type Folder = (typeof folders)[number]["id"];
+const mailTime = (at: string) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(at));
 
-export function EmailWorkspace({ onNavigate }: { onNavigate: (id: string) => void }) {
-  const { session, can } = useSession();
-  const [folder, setFolder] = useState<(typeof folders)[number]["id"]>("inbox");
+export function EmailWorkspace() {
+  const { store, account, directory, send, saveDraft, changeMail } = useCommunications();
+  const [folder, setFolder] = useState<Folder>("inbox");
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState(seedMessages);
-  const [selectedId, setSelectedId] = useState(1);
+  const [selectedId, setSelectedId] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
+  const [draftId, setDraftId] = useState("");
   const [recipient, setRecipient] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const canUseRecruitingAi = can("ai-cv", "create");
-  const isHr = session.department === "Nhân sự";
+  const all = mailbox(store, account.address, folder);
+  const visible = all.filter((item) => `${item.fromName} ${item.to} ${item.subject} ${item.body}`.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi")));
+  const selected = visible.find((item) => item.id === selectedId) ?? visible[0];
+  const unread = mailbox(store, account.address, "inbox").filter((item) => !item.readBy.includes(account.address)).length;
 
-  const visible = useMemo(() => messages.filter((message) => {
-    const inFolder = folder === "starred" ? message.starred : message.mailbox === folder;
-    return inFolder && `${message.sender} ${message.subject} ${message.preview}`.toLowerCase().includes(query.toLowerCase());
-  }), [folder, messages, query]);
-  const selected = messages.find((message) => message.id === selectedId) ?? visible[0];
-
-  function openMessage(id: number) {
-    setSelectedId(id);
-    setMessages((current) => current.map((message) => message.id === id ? { ...message, unread: false } : message));
+  function startCompose(message?: MailMessage, mode?: "reply" | "forward" | "draft") {
+    setDraftId(mode === "draft" ? message?.id ?? "" : "");
+    setRecipient(mode === "draft" ? message?.to ?? "" : mode === "reply" ? message?.from === account.address ? message.to : message?.from ?? "" : "");
+    setSubject(mode === "draft" ? message?.subject ?? "" : message ? `${mode === "forward" ? "Fwd:" : "Re:"} ${message.subject.replace(/^(Re:|Fwd:)\s*/i, "")}` : "");
+    setBody(mode === "draft" ? message?.body ?? "" : mode === "forward" ? `\n\n----------\n${message?.fromName}: ${message?.body ?? ""}` : "");
+    setComposeOpen(true);
   }
-
-  function sendMessage() {
-    if (!recipient.includes("@") || subject.trim().length < 3 || body.trim().length < 5) {
-      toast.error("Vui lòng nhập người nhận, tiêu đề và nội dung hợp lệ.");
-      return;
-    }
-    setMessages((current) => [{ id: Date.now(), sender: "Nguyễn Thu Hà", initials: "NH", subject: subject.trim(), preview: body.trim(), time: "Vừa xong", mailbox: "sent", body: [body.trim()] }, ...current]);
-    setComposeOpen(false); setRecipient(""); setSubject(""); setBody("");
-    toast.success("Email đã được gửi và lưu trong thư đã gửi.");
+  function openMessage(message: MailMessage) {
+    setSelectedId(message.id);
+    if (message.draftOwner) { startCompose(message, "draft"); return; }
+    if (message.to === account.address && !message.readBy.includes(account.address)) changeMail(message.id, "read");
   }
-
-  return (
-    <div className="email-app page-stack">
-      <WorkspaceHeader eyebrow="OHRIISE MAIL" title="Email doanh nghiệp" description="Trao đổi nội bộ, HR và tuyển dụng trong cùng ngữ cảnh công việc." action={<button className="primary-button" onClick={() => setComposeOpen(true)}><MailPlus size={16} strokeWidth={1.5} /> Soạn thư</button>} />
-      <section className="mail-shell">
-        <aside className="mailbox-sidebar">
-          <button className="mail-compose" onClick={() => setComposeOpen(true)}><MailPlus size={16} strokeWidth={1.5} /><span>Thư mới</span></button>
-          <nav aria-label="Thư mục email">{folders.map((item) => { const Icon = item.icon; const count = item.id === "inbox" ? messages.filter((message) => message.mailbox === "inbox" && message.unread).length : item.id === "draft" ? 1 : 0; return <button className={folder === item.id ? "is-active" : ""} key={item.id} onClick={() => setFolder(item.id)}><Icon size={16} strokeWidth={1.5} /><span>{item.label}</span>{count > 0 && <b>{count}</b>}</button>; })}</nav>
-          {isHr && <div className="shared-mailbox"><span>SHARED MAILBOX</span><button onClick={() => toast.info("Đã chuyển sang HR Shared Mailbox.")}><UsersRound size={15} strokeWidth={1.5} /><strong>HR Shared</strong><b>12</b></button></div>}
-          <div className="mail-storage"><span>2.4 GB / 15 GB</span><i><b /></i><small>Lưu trữ email doanh nghiệp</small></div>
-        </aside>
-
-        <div className="message-column">
-          <div className="mail-search"><Search size={16} strokeWidth={1.5} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm người gửi, tiêu đề, nội dung..." /></div>
-          <div className="message-list">{visible.length ? visible.map((message) => <button className={`${selected?.id === message.id ? "is-active" : ""}${message.unread ? " is-unread" : ""}`} key={message.id} onClick={() => openMessage(message.id)}><span className="avatar avatar-sm">{message.initials}</span><div><p><strong>{message.sender}</strong><time>{message.time}</time></p><h3>{message.subject}</h3><small>{message.preview}</small>{message.attachment && <em><Paperclip size={12} strokeWidth={1.5} /> {message.attachment}</em>}</div><Star className={message.starred ? "is-starred" : ""} size={15} strokeWidth={1.5} onClick={(event) => { event.stopPropagation(); setMessages((current) => current.map((item) => item.id === message.id ? { ...item, starred: !item.starred } : item)); }} /></button>) : <div className="mail-empty"><Image src="/assets/ohriise/14_notifications_alert-center_announcements.png" alt="" width={150} height={112} /><strong>Không có email phù hợp</strong><p>Thử thư mục hoặc từ khóa khác.</p></div>}</div>
-        </div>
-
-        <article className="thread-view">
-          {selected ? <><div className="thread-toolbar"><button aria-label="Quay lại danh sách"><ChevronLeft size={17} strokeWidth={1.5} /></button><div><button aria-label="Lưu trữ" onClick={() => toast.success("Đã lưu trữ email.")}><Archive size={16} strokeWidth={1.5} /></button><button aria-label="Xóa" onClick={() => { setMessages((current) => current.filter((message) => message.id !== selected.id)); toast.success("Đã chuyển email vào thùng rác."); }}><Trash2 size={16} strokeWidth={1.5} /></button></div></div><header><span className="eyebrow">THREAD · {selected.time}</span><h2>{selected.subject}</h2><div><span className="avatar">{selected.initials}</span><p><strong>{selected.sender}</strong><small>đến Nguyễn Thu Hà · ha.nguyen@ohriise.vn</small></p><StatusPill tone={selected.unread ? "blue" : "neutral"}>{selected.unread ? "Chưa đọc" : "Đã đọc"}</StatusPill></div></header><div className="message-body">{selected.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>{selected.attachment && <div className="attachment-card"><FileText size={22} strokeWidth={1.5} /><div><strong>{selected.attachment}</strong><span>PDF · 1.8 MB</span></div><button aria-label="Tải tệp" onClick={() => toast.success("Đã chuẩn bị tệp đính kèm.")}><Download size={16} strokeWidth={1.5} /></button>{canUseRecruitingAi && selected.attachment.toLowerCase().includes("cv") && <button className="send-to-ai" onClick={() => onNavigate("ai-cv")}><Bot size={15} strokeWidth={1.5} /> Mở trong AI CV</button>}</div>}<div className="thread-reply"><button className="secondary-button" onClick={() => { setRecipient(selected.sender); setSubject(`Re: ${selected.subject}`); setComposeOpen(true); }}>Trả lời</button><button className="text-button inline" onClick={() => toast.info("Đã mở chế độ chuyển tiếp.")}>Chuyển tiếp</button></div></> : <div className="mail-empty"><Image src="/assets/ohriise/14_notifications_alert-center_announcements.png" alt="" width={160} height={120} /><strong>Chọn một email để đọc</strong><p>Nội dung và tệp đính kèm sẽ hiển thị tại đây.</p></div>}
-        </article>
-      </section>
-
-      <WorkflowDialog open={composeOpen} onOpenChange={setComposeOpen} title="Soạn email" description="Thư được gửi qua hộp thư công ty của bạn." footer={<><button className="secondary-button" onClick={() => { setComposeOpen(false); toast.success("Đã lưu bản nháp."); }}>Lưu nháp</button><button className="primary-button" onClick={sendMessage}><Send size={15} strokeWidth={1.5} /> Gửi email</button></>}>
-        <div className="form-grid"><FormField label="Người nhận" required><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="ten@ohriise.vn" /></FormField><FormField label="Tiêu đề" required><input value={subject} onChange={(event) => setSubject(event.target.value)} /></FormField><FormField label="Nội dung" required><textarea className="mail-compose-body" value={body} onChange={(event) => setBody(event.target.value)} placeholder="Nhập nội dung email..." /></FormField><FormField label="Tệp đính kèm"><label className="upload-zone"><Paperclip size={17} strokeWidth={1.5} /><span>Chọn tệp đính kèm</span><input className="sr-only" type="file" onChange={(event) => event.target.files?.[0] && toast.success(`Đã đính kèm ${event.target.files[0].name}.`)} /></label></FormField></div>
-      </WorkflowDialog>
-    </div>
-  );
+  function updateMessage(id: string, action: "star" | "archive" | "unarchive" | "trash" | "restore") {
+    const result = changeMail(id, action);
+    if (!result.ok) { toast.error(result.error); return; }
+    if (action !== "star") setSelectedId("");
+  }
+  function submit() {
+    const result = send({ to: recipient, subject, body, draftId: draftId || undefined });
+    if (!result.ok) { toast.error(result.error); return; }
+    setComposeOpen(false); setDraftId(""); setFolder("sent"); setSelectedId(result.id);
+    toast.success("Đã gửi trong hộp thư demo nội bộ.");
+  }
+  function keepDraft() {
+    const result = saveDraft({ to: recipient, subject, body, draftId: draftId || undefined });
+    if (!result.ok) { toast.error(result.error); return; }
+    setComposeOpen(false); setFolder("draft"); setSelectedId(result.id); setDraftId("");
+    toast.success("Đã lưu bản nháp.");
+  }
+  return <div className="email-app page-stack">
+    <WorkspaceHeader title="Email" subtitle={account.address} action={<button className="primary-button" onClick={() => startCompose()}><MailPlus size={16} /> Soạn thư</button>} />
+    <section className="mail-shell">
+      <aside className="mailbox-sidebar"><button className="mail-compose" onClick={() => startCompose()}><MailPlus size={16} /><span>Thư mới</span></button><nav aria-label="Thư mục email">{folders.map((item) => { const Icon = item.icon; const count = item.id === "inbox" ? unread : item.id === "draft" ? mailbox(store, account.address, "draft").length : 0; return <button className={folder === item.id ? "is-active" : ""} key={item.id} onClick={() => { setFolder(item.id); setSelectedId(""); }}><Icon size={16} /><span>{item.label}</span>{count > 0 && <b>{count}</b>}</button>; })}</nav><p className="mail-demo-scope">Thư chỉ lưu và trao đổi trong bản demo này.</p></aside>
+      <div className="message-column"><div className="mail-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm thư" aria-label="Tìm thư" /></div><div className="message-list">{visible.length ? visible.map((message) => <button className={`${selected?.id === message.id ? "is-active" : ""}${message.to === account.address && !message.readBy.includes(account.address) ? " is-unread" : ""}`} key={message.id} onClick={() => openMessage(message)}><span className="avatar avatar-sm">{message.fromName.split(" ").slice(-2).map((word) => word[0]).join("").toUpperCase()}</span><div><p><strong>{folder === "sent" ? directory.find((item) => item.address === message.to)?.name ?? message.to : message.fromName}</strong><time>{mailTime(message.at)}</time></p><h3>{message.subject || "(Chưa có tiêu đề)"}</h3><small>{message.body || "Bản nháp"}</small></div><Star className={message.starredBy.includes(account.address) ? "is-starred" : ""} size={15} onClick={(event) => { event.stopPropagation(); updateMessage(message.id, "star"); }} /></button>) : <div className="mail-empty"><strong>Chưa có thư</strong><p>Chọn thư mục khác hoặc soạn thư mới.</p></div>}</div></div>
+      <article className="thread-view">{selected ? <><div className="thread-toolbar"><span>{folder === "draft" ? "BẢN NHÁP" : "EMAIL NỘI BỘ"}</span><div>{folder === "trash" ? <button aria-label="Khôi phục thư" onClick={() => updateMessage(selected.id, "restore")}><RotateCcw size={16} /></button> : <>{folder === "archive" ? <button aria-label="Bỏ lưu trữ" onClick={() => updateMessage(selected.id, "unarchive")}><RotateCcw size={16} /></button> : folder !== "draft" && <button aria-label="Lưu trữ" onClick={() => updateMessage(selected.id, "archive")}><Archive size={16} /></button>}<button aria-label="Chuyển vào thùng rác" onClick={() => updateMessage(selected.id, "trash")}><Trash2 size={16} /></button></>}</div></div><header><span className="eyebrow">{mailTime(selected.at)}</span><h2>{selected.subject || "(Chưa có tiêu đề)"}</h2><div><span className="avatar">{selected.fromName.split(" ").slice(-2).map((word) => word[0]).join("").toUpperCase()}</span><p><strong>{selected.fromName}</strong><small>{selected.from} → {selected.to || "Chưa chọn người nhận"}</small></p></div></header><div className="message-body"><p>{selected.body || "Chưa có nội dung."}</p></div>{folder !== "draft" && folder !== "trash" && <div className="thread-reply">{!selected.announcementId && <button className="secondary-button" onClick={() => startCompose(selected, "reply")}>Trả lời</button>}<button className="text-button inline" onClick={() => startCompose(selected, "forward")}>Chuyển tiếp</button></div>}{folder === "draft" && <div className="thread-reply"><button className="secondary-button" onClick={() => startCompose(selected, "draft")}>Tiếp tục soạn</button></div>}</> : <div className="mail-empty"><strong>Chọn một email để đọc</strong></div>}</article>
+    </section>
+    <WorkflowDialog open={composeOpen} onOpenChange={setComposeOpen} title="Soạn email" description="Chỉ gửi giữa các hộp thư trong bản demo; không gửi ra dịch vụ email ngoài." footer={<><button className="secondary-button" onClick={keepDraft}>Lưu nháp</button><button className="primary-button" onClick={submit}><Send size={15} /> Gửi</button></>}><div className="form-grid"><FormField label="Người nhận" required><input type="email" list="mail-directory" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="ten@ohriise.vn" /><datalist id="mail-directory">{directory.filter((item) => item.address !== account.address).map((item) => <option key={item.key} value={item.address}>{item.name}</option>)}</datalist></FormField><FormField label="Tiêu đề" required><input value={subject} onChange={(event) => setSubject(event.target.value)} /></FormField><FormField label="Nội dung" required><textarea className="mail-compose-body" value={body} onChange={(event) => setBody(event.target.value)} placeholder="Nhập nội dung email" /></FormField></div></WorkflowDialog>
+  </div>;
 }

@@ -136,7 +136,7 @@ const registry: NavGroup[] = [
 
 // Optional showcase modules remain in the repository, but are not part of the
 // active HRM demo until their data and workflows are connected to the core model.
-export const deferredModules = new Set(["email", "performance", "payslip", "expense-review", "ai-cv", "email-dlp", "notification-config", "catalogs"]);
+export const deferredModules = new Set(["performance", "payslip", "expense-review", "ai-cv", "email-dlp", "notification-config", "catalogs"]);
 
 export function isDeferredModule(id: string) {
   return deferredModules.has(id);
