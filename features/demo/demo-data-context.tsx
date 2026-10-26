@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoBusinessNow } from "@/lib/demo-clock";
 
-export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Chi phí" | "Điều chỉnh chấm công" | "Đăng ký OT" | "Đổi ca";
+export type BusinessRequestType = "WFH" | "Nghỉ phép" | "Nghỉ việc" | "Chi phí" | "Điều chỉnh chấm công" | "Đăng ký OT" | "Đổi ca";
 export type BusinessRequestStatus = "pending" | "approved" | "rejected" | "hr-review";
 export type WfhReportStatus = "not-required" | "draft" | "required" | "submitted";
 
@@ -14,6 +14,7 @@ export type BusinessRequest = {
   employee: string;
   initials: string;
   submitted: string;
+  submittedAt?: string;
   detail: string;
   date: string;
   status: BusinessRequestStatus;
@@ -127,6 +128,7 @@ type DemoDataContextValue = {
   updateBusinessRequest: (id: string, patch: Pick<BusinessRequest, "date" | "detail">) => void;
   cancelBusinessRequest: (id: string) => void;
   decideBusinessRequest: (id: string, status: "approved" | "rejected", note?: string, actor?: string, actorId?: string) => boolean;
+  markResignationStarted: (id: string, caseId: string, actor: string) => boolean;
   completeAttendanceAdjustmentRequest: (id: string, status: "approved" | "rejected", actor: string) => boolean;
   accounts: DemoAccount[];
   selectedAccount: DemoAccount;
@@ -178,7 +180,9 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
 
   function addBusinessRequest(request: NewBusinessRequest) {
     const id = `${request.idPrefix}-${String(Date.now()).slice(-6)}`;
-    setRequests((current) => [{ ...request, id, submitted: "Vừa xong", status: "pending" }, ...current]);
+    const created: BusinessRequest = { ...request, id, submitted: "Vừa xong", submittedAt: demoBusinessNow().toISOString(), status: request.type === "Nghỉ việc" && !request.approverId ? "hr-review" : "pending" };
+    requestsRef.current = [created, ...requestsRef.current];
+    setRequests(requestsRef.current);
     return id;
   }
 
@@ -200,11 +204,20 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
     const target = requestsRef.current.find((request) => request.id === id);
     if (!target || target.status !== "pending" || !actorId || target.approverId !== actorId || target.employeeId === actorId) return false;
     if (target.type === "Đổi ca" && status === "approved" && (!target.shiftAssignmentId || !/^\d{2}:\d{2}$/.test(target.shiftStart ?? "") || !/^\d{2}:\d{2}$/.test(target.shiftEnd ?? "") || (target.shiftStart ?? "") >= (target.shiftEnd ?? "") || requestsRef.current.some((item) => item.id !== id && item.type === "Đổi ca" && item.employeeId === target.employeeId && item.date === target.date && item.status === "approved"))) return false;
-    const nextStatus: BusinessRequestStatus = target.type === "Điều chỉnh chấm công" && status === "approved" ? "hr-review" : status;
+    const nextStatus: BusinessRequestStatus = ["Điều chỉnh chấm công", "Nghỉ việc"].includes(target.type) && status === "approved" ? "hr-review" : status;
     const next = requestsRef.current.map((request) => request.id === id ? { ...request, status: nextStatus, note } : request);
     requestsRef.current = next;
     setRequests(next);
     addAuditEvent({ actor, action: status === "approved" ? "APPROVE_REQUEST" : "REJECT_REQUEST", target: id, result: status === "approved" ? "success" : "rejected", source: "Demo session", detail: note || "Quyết định được ghi nhận từ Approval Inbox." });
+    return true;
+  }
+
+  function markResignationStarted(id: string, caseId: string, actor: string) {
+    const target = requestsRef.current.find((request) => request.id === id && request.type === "Nghỉ việc" && request.status === "hr-review");
+    if (!target) return false;
+    const next = requestsRef.current.map((request) => request.id === id ? { ...request, status: "approved" as const, note: `${request.note ? `${request.note} · ` : ""}Đã mở quy trình ${caseId}.` } : request);
+    requestsRef.current = next; setRequests(next);
+    addAuditEvent({ actor, action: "START_RESIGNATION_OFFBOARDING", target: id, result: "success", source: "Demo session", detail: `Đã mở quy trình ${caseId} từ đơn xin nghỉ việc.` });
     return true;
   }
 
@@ -264,6 +277,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
     updateBusinessRequest,
     cancelBusinessRequest,
     decideBusinessRequest,
+    markResignationStarted,
     completeAttendanceAdjustmentRequest,
     accounts,
     selectedAccount,

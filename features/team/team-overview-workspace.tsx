@@ -48,6 +48,7 @@ export function TeamOverviewWorkspace({ onNavigate }: { onNavigate: (id: string)
     { label: "Điều chỉnh công", count: requestPending.filter((item) => item.type === "Điều chỉnh chấm công").length + explanations.length, tone: "amber", route: `approvals/inbox/${requestPending.find((item) => item.type === "Điều chỉnh chấm công")?.id ?? ""}` },
     { label: "Đăng ký OT", count: requestPending.filter((item) => item.type === "Đăng ký OT").length, tone: "violet", route: `approvals/inbox/${requestPending.find((item) => item.type === "Đăng ký OT")?.id ?? ""}` },
     { label: "Đổi ca", count: requestPending.filter((item) => item.type === "Đổi ca").length, tone: "cyan", route: `approvals/inbox/${requestPending.find((item) => item.type === "Đổi ca")?.id ?? ""}` },
+    { label: "Đơn nghỉ việc", count: requestPending.filter((item) => item.type === "Nghỉ việc").length, tone: "rose", route: `approvals/inbox/${requestPending.find((item) => item.type === "Nghỉ việc")?.id ?? ""}` },
     { label: "Đánh giá thử việc", count: probationPending.length, tone: "mint", route: probationPending[0] ? `team-probation/${probationPending[0].id}` : "team-probation" },
   ].filter((item) => item.count > 0);
   function decideExplanation(decision: "confirmed" | "rejected") {

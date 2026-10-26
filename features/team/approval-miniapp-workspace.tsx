@@ -66,7 +66,7 @@ const requestTemplates: RequestTemplate[] = [
 
 // Leave has its own ID-based workflow; do not mix legacy free-text leave rows into this inbox.
 const activeTemplates = requestTemplates.filter((item) => ["adjustment", "overtime", "wfh", "leave", "swap"].includes(item.id));
-const supportedTypes = activeTemplates.filter((item) => item.id !== "leave").map((item) => item.type);
+const supportedTypes: BusinessRequestType[] = [...activeTemplates.filter((item) => item.id !== "leave").map((item) => item.type), "Nghỉ việc"];
 
 export function ApprovalMiniappWorkspace({ initialTemplate, initialRequestId, onNavigate }: { initialTemplate?: string; initialRequestId?: string; onNavigate?: (id: string) => void }) {
   const { session } = useSession();
@@ -349,7 +349,7 @@ function ApprovalCenter({ requests, selectedId, setSelectedId, folder, setFolder
 function ApprovalRecordCard({ request, active, onClick }: { request: BusinessRequest; active: boolean; onClick: () => void }) {
   return (
     <button className={`approval-record-card${active ? " is-active" : ""}`} onClick={onClick}>
-      <div><strong>{displayType(request.type)}</strong><RequestStatus status={request.status} /></div>
+      <div><strong>{displayType(request.type)}</strong><RequestStatus status={request.status} type={request.type} /></div>
       <p>{request.detail}</p>
       <footer><span className="avatar avatar-sm">{request.initials}</span><span>{request.employee}</span><time>{request.submitted}</time></footer>
     </button>
@@ -361,7 +361,7 @@ function ApprovalRecordDetail({ request, canApprove, setDecision }: { request: B
     <article className="approval-record-detail">
       <header>
         <div><span>{request.id}</span><h2>{displayType(request.type)}</h2></div>
-        <RequestStatus status={request.status} />
+        <RequestStatus status={request.status} type={request.type} />
       </header>
       <div className="approval-requester"><span className="avatar">{request.initials}</span><div><strong>{request.employee}</strong><span>{request.employeeId ?? "Fixture cũ"} · gửi {request.submitted}</span></div></div>
       <div className="approval-detail-tabs"><span>Chi tiết và tuyến duyệt</span></div>
@@ -392,7 +392,8 @@ function ApprovalProcess({ request }: { request: BusinessRequest }) {
     <section className="approval-process">
       <h3>Hồ sơ phê duyệt</h3>
       <div className="approval-process-step is-complete"><i><Check size={12} /></i><div><strong>Gửi yêu cầu</strong><span>{request.employee} · {request.submitted}</span></div><small>Đã gửi</small></div>
-      <div className={`approval-process-step${request.status === "pending" ? " is-current" : request.status === "approved" || request.status === "hr-review" ? " is-complete" : " is-rejected"}`}><i>{request.status === "approved" || request.status === "hr-review" ? <Check size={12} /> : <Clock3 size={12} />}</i><div><strong>{finalLabel}</strong><span>{request.approverName ?? "Chưa xác định người duyệt"}</span></div><small>{request.status === "hr-review" ? "Đã xác nhận" : statusLabel(request.status)}</small></div>
+      {request.approverId && <div className={`approval-process-step${request.status === "pending" ? " is-current" : request.status === "approved" || request.status === "hr-review" ? " is-complete" : " is-rejected"}`}><i>{request.status === "approved" || request.status === "hr-review" ? <Check size={12} /> : <Clock3 size={12} />}</i><div><strong>{finalLabel}</strong><span>{request.approverName ?? "Chưa xác định người duyệt"}</span></div><small>{request.status === "hr-review" ? "Đã xác nhận" : statusLabel(request.status)}</small></div>}
+      {request.type === "Nghỉ việc" && <div className={`approval-process-step${request.status === "hr-review" ? " is-current" : request.status === "approved" ? " is-complete" : ""}`}><i>{request.status === "approved" ? <Check size={12} /> : <Clock3 size={12} />}</i><div><strong>HR khởi tạo bàn giao</strong><span>Đơn đã xác nhận được chuyển đến danh sách Offboarding.</span></div><small>{request.status === "hr-review" ? "Chờ HR" : request.status === "approved" ? "Đã mở" : "Chưa đến bước"}</small></div>}
       {request.type === "Điều chỉnh chấm công" && <div className={`approval-process-step${request.status === "hr-review" ? " is-current" : request.status === "approved" ? " is-complete" : ""}`}><i><Clock3 size={12} /></i><div><strong>HR đối soát bản công</strong><span>{request.attendanceId ?? "Chưa gắn bản công"} · không sửa sự kiện gốc</span></div><small>{request.status === "hr-review" ? "Đang chờ HR" : request.status === "approved" ? "Đã áp dụng" : "Chưa đến bước"}</small></div>}
     </section>
   );
@@ -466,7 +467,7 @@ function ApprovalDataManager({ requests, onOpen }: { requests: BusinessRequest[]
         <div className="approval-data-table-wrap">
           <table className="approval-data-table">
             <thead><tr><th>Request No.</th><th>Trạng thái</th><th>Quy trình</th><th>Người gửi</th><th>Ngày áp dụng</th><th>Gửi lúc</th></tr></thead>
-            <tbody>{visible.map((request) => <tr key={request.id} onClick={() => onOpen(request.id)}><td><button>{request.id}</button></td><td><RequestStatus status={request.status} /></td><td>{displayType(request.type)}</td><td><span className="approval-table-person"><i className="avatar avatar-sm">{request.initials}</i>{request.employee}</span></td><td>{request.date}</td><td>{request.submitted}</td></tr>)}</tbody>
+            <tbody>{visible.map((request) => <tr key={request.id} onClick={() => onOpen(request.id)}><td><button>{request.id}</button></td><td><RequestStatus status={request.status} type={request.type} /></td><td>{displayType(request.type)}</td><td><span className="approval-table-person"><i className="avatar avatar-sm">{request.initials}</i>{request.employee}</span></td><td>{request.date}</td><td>{request.submitted}</td></tr>)}</tbody>
           </table>
           {visible.length === 0 && <div className="approval-empty"><Database size={36} strokeWidth={1.3} /><strong>Không có bản ghi</strong><span>Hãy đổi bộ lọc để xem dữ liệu khác.</span></div>}
         </div>
@@ -475,8 +476,8 @@ function ApprovalDataManager({ requests, onOpen }: { requests: BusinessRequest[]
   );
 }
 
-function RequestStatus({ status }: { status: BusinessRequestStatus }) {
-  return <StatusPill tone={status === "pending" ? "warning" : status === "approved" ? "success" : status === "rejected" ? "danger" : "blue"}>{statusLabel(status)}</StatusPill>;
+function RequestStatus({ status, type }: { status: BusinessRequestStatus; type?: BusinessRequestType }) {
+  return <StatusPill tone={status === "pending" ? "warning" : status === "approved" ? "success" : status === "rejected" ? "danger" : "blue"}>{type === "Nghỉ việc" && status === "hr-review" ? "Chờ HR" : type === "Nghỉ việc" && status === "approved" ? "Đã mở bàn giao" : statusLabel(status)}</StatusPill>;
 }
 
 function statusLabel(status: BusinessRequestStatus) {
@@ -495,7 +496,9 @@ function displayType(type: BusinessRequestType) {
 }
 
 function RequestContext({ type }: { type: BusinessRequestType }) {
-  const data = type === "Nghỉ phép"
+  const data = type === "Nghỉ việc"
+    ? { icon: FileQuestion, title: "Đơn xin nghỉ việc", copy: "Quản lý xác nhận đề xuất; HR mới khởi tạo quy trình bàn giao. Đơn chưa thay đổi trạng thái nhân sự hay tài khoản." }
+    : type === "Nghỉ phép"
     ? { icon: CalendarDays, title: "Ngữ cảnh nghỉ phép", copy: "Còn 12 ngày phép · không trùng lịch nghỉ trong nhóm." }
     : type === "WFH"
       ? { icon: Laptop2, title: "Chính sách WFH", copy: "Daily Report được gắn với ngày làm việc từ xa sau khi đơn được duyệt." }

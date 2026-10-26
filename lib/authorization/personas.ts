@@ -19,7 +19,7 @@ const baseEmployee: PermissionGrant[] = [
   grant("email", ["view", "create", "edit"], "self", "base"),
   grant("payslip", ["view"], "self", "base"),
   grant("contracts", ["view"], "self", "base"),
-  grant("offboarding-status", ["view"], "self", "base"),
+  grant("offboarding-status", ["view", "create"], "self", "base"),
   grant("notifications", ["view"], "self", "base"),
   grant("performance", ["view"], "self", "base"),
 ];

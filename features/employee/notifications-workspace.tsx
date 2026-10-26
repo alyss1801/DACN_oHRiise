@@ -8,6 +8,7 @@ import { useSession } from "@/features/session/session-context";
 import { useDemoData } from "@/features/demo/demo-data-context";
 import { useWfhDemo } from "@/features/wfh/wfh-demo-context";
 import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
+import { canAccessScopedRecord } from "@/lib/authorization/engine";
 import { useCommunications } from "@/features/communications/communications-context";
 import { AnnouncementChannels } from "@/features/communications/announcement-channels";
 import { EmptyState, WorkspaceHeader } from "./workspace-frame";
@@ -49,6 +50,13 @@ export function NotificationsWorkspace({ onNavigate }: { onNavigate: (id: string
     const wfhSession = wfhStore.sessions.find((entry) => entry.requestId === item.id);
     if (person && item.approverId === selfId && item.status === "pending") notices.push({ id: `wfh-approval-${item.id}`, category: "Cần xử lý", title: `Duyệt kế hoạch WFH của ${person.name}`, message: `${item.id} · ${item.date}.`, route: "approvals", at: `${item.date}T09:00:00+07:00`, tone: "amber" });
     if (item.employeeId === selfId && item.status === "approved" && !wfhSession?.reportSubmittedAt) notices.push({ id: `wfh-report-${item.id}-${wfhSession?.checkOutAt ? "ended" : "open"}`, category: "WFH", title: wfhSession?.checkOutAt ? "Nộp báo cáo WFH" : "Theo dõi phiên WFH", message: `${item.id} · ${item.date}. Đơn đã duyệt chưa tự tính công.`, route: `ai-wfh/${item.id}`, at: `${item.date}T09:00:00+07:00`, tone: "blue" });
+  }
+  for (const item of requests.filter((entry) => entry.type === "Nghỉ việc")) {
+    const person = employees.find((entry) => entry.id === item.employeeId);
+    const at = item.submittedAt ?? `${item.date}T09:00:00+07:00`;
+    if (item.employeeId === selfId) notices.push({ id: `resignation-self-${item.id}-${item.status}`, category: "Nghỉ việc", title: item.status === "rejected" ? "Đơn xin nghỉ việc bị từ chối" : item.status === "approved" ? "HR đã mở quy trình bàn giao" : item.status === "hr-review" ? "Đơn đang chờ HR" : "Đơn đang chờ quản lý", message: `${item.id} · ngày cuối đề xuất ${item.date}.`, route: "offboarding-status", at, tone: "blue" });
+    if (item.approverId === selfId && item.status === "pending") notices.push({ id: `resignation-manager-${item.id}`, category: "Cần xử lý", title: `Xác nhận đơn nghỉ việc của ${item.employee}`, message: `${item.id} · ngày cuối đề xuất ${item.date}.`, route: `approvals/inbox/${item.id}`, at, tone: "amber" });
+    if (item.status === "hr-review" && person && can("offboarding", "create") && canAccessScopedRecord(session, { employeeId: person.id, branch: person.branch, department: person.department }) && !cases.some((entry) => entry.kind === "offboarding" && entry.sourceReference === item.id && !entry.cancelledAt)) notices.push({ id: `resignation-hr-${item.id}`, category: "Cần xử lý", title: `Khởi tạo bàn giao cho ${person.name}`, message: `${item.id} · ngày cuối đề xuất ${item.date}.`, route: "offboarding", at, tone: "amber" });
   }
   for (const item of requests.filter((entry) => entry.type === "Đăng ký OT" || entry.type === "Điều chỉnh chấm công")) {
     const label = item.type === "Đăng ký OT" ? "OT" : "Điều chỉnh công";

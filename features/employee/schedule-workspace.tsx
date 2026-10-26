@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Check, Clock3, QrCode, RefreshCw, Repeat2, TimerReset, UsersRound } from "lucide-react";
+import { CalendarDays, Check, Clock3, Plus, QrCode, RefreshCw, Repeat2, TimerReset, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoData } from "@/features/demo/demo-data-context";
 import { FormField, StatusPill, WorkflowDialog, WorkspaceHeader } from "./workspace-frame";
 import { useHrDemo } from "@/features/hr/hr-demo-context";
 import { scheduledDisableAt } from "@/features/hr/offboarding-model";
+import { resignationInputError } from "@/features/hr/resignation-model";
+import { hrToday } from "@/features/hr/hr-demo-data";
 import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
 import { useSession } from "@/features/session/session-context";
 
@@ -103,20 +105,41 @@ export function ScheduleWorkspace({ onNavigate }: { onNavigate: (id: string) => 
 }
 
 export function OffboardingStatusWorkspace() {
-  const { session } = useSession();
+  const { session, can } = useSession();
   const { cases, assets, employees } = useHrDemo();
+  const { requests, addBusinessRequest } = useDemoData();
+  const [open, setOpen] = useState(false);
+  const [lastWorkingDay, setLastWorkingDay] = useState("");
+  const [reason, setReason] = useState("");
   const selfId = personaEmployeeIds[session.id];
   const person = employees.find((item) => item.id === selfId);
   const current = cases.find((item) => item.employeeId === selfId && item.kind === "offboarding" && !item.completedAt && !item.cancelledAt);
+  const openRequest = requests.find((item) => item.type === "Nghỉ việc" && item.employeeId === selfId && ["pending", "hr-review"].includes(item.status) && !cases.some((entry) => entry.kind === "offboarding" && entry.sourceReference === item.id && entry.cancelledAt));
+  const request = openRequest ?? requests.find((item) => item.type === "Nghỉ việc" && item.employeeId === selfId);
+  const completed = cases.find((item) => item.employeeId === selfId && item.kind === "offboarding" && item.completedAt);
+  const hasOpenRequest = Boolean(openRequest);
   const held = assets.filter((item) => item.holderId === selfId);
+  function submitResignation() {
+    if (!can("offboarding-status", "create")) { toast.error("Bạn không có quyền gửi đơn xin nghỉ việc."); return; }
+    const error = resignationInputError({ employee: person, lastWorkingDay, reason, today: hrToday(), requests, cases });
+    if (error) { toast.error(error); return; }
+    const manager = employees.find((item) => item.id === person?.managerId && item.status !== "inactive");
+    addBusinessRequest({ idPrefix: "RES-2026", type: "Nghỉ việc", employeeId: person!.id, employee: person!.name, initials: person!.initials, date: lastWorkingDay, detail: reason.trim(), approverId: manager?.id, approverName: manager?.name });
+    setOpen(false); setReason(""); setLastWorkingDay("");
+    toast.success(manager ? "Đã gửi đơn đến quản lý trực tiếp." : "Đã gửi đơn đến HR.");
+  }
   return (
     <div className="page-stack">
-      <WorkspaceHeader eyebrow="EMPLOYMENT STATUS" title="Trạng thái nghỉ việc" description="Theo dõi thông báo và checklist bàn giao nếu có quy trình offboarding." />
-      {current ? <section className="panel"><span className="eyebrow">{current.id} · DEMO CỤC BỘ</span><h2>Đang bàn giao</h2><p>{person?.name} · Ngày làm việc cuối: {current.lastWorkingDay ?? "Chưa xác định"}. Thời điểm xử lý tài khoản dự kiến: {scheduledDisableAt(current) ? new Date(scheduledDisableAt(current)!).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa xác định"}. Mở quy trình không đồng nghĩa tài khoản đã bị khóa.</p><div className="hr-task-list">{current.tasks.map((task) => <div key={task.id} className="hr-task-row"><span className={`hr-task-check ${task.doneAt ? "done" : ""}`}>{task.doneAt ? "✓" : ""}</span><span><strong>{task.label}</strong><small>{task.owner} · hạn {task.deadline}{task.note ? ` · ${task.note}` : ""}</small></span><StatusPill tone={task.doneAt ? "success" : "warning"}>{task.doneAt ? "Xong" : "Đang chờ"}</StatusPill></div>)}</div><p>{held.length ? `${held.length} tài sản đang chờ bàn giao hoặc thu hồi.` : "Không còn tài sản đang giữ trong bộ dữ liệu demo."}</p></section> : <section className="panel offboarding-self-empty">
+      <WorkspaceHeader title="Trạng thái nghỉ việc" action={can("offboarding-status", "create") && person && person.status !== "inactive" && !current && !hasOpenRequest ? <button className="primary-button" onClick={() => setOpen(true)}><Plus size={16} /> Tạo đơn xin nghỉ việc</button> : undefined} />
+      {current ? <section className="panel"><span className="eyebrow">{current.id}</span><h2>Đang bàn giao</h2><p>{person?.name} · Ngày làm việc cuối: {current.lastWorkingDay ?? "Chưa xác định"}. Thời điểm xử lý tài khoản dự kiến: {scheduledDisableAt(current) ? new Date(scheduledDisableAt(current)!).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa xác định"}.</p><div className="hr-task-list">{current.tasks.map((task) => <div key={task.id} className="hr-task-row"><span className={`hr-task-check ${task.doneAt ? "done" : ""}`}>{task.doneAt ? "✓" : ""}</span><span><strong>{task.label}</strong><small>{task.owner} · hạn {task.deadline}{task.note ? ` · ${task.note}` : ""}</small></span><StatusPill tone={task.doneAt ? "success" : "warning"}>{task.doneAt ? "Xong" : "Đang chờ"}</StatusPill></div>)}</div><p>{held.length ? `${held.length} tài sản đang chờ bàn giao hoặc thu hồi.` : "Không còn tài sản đang giữ trong bộ dữ liệu demo."}</p></section> : completed ? <section className="panel offboarding-request-status"><span className="eyebrow">{completed.id}</span><h2>Quy trình nghỉ việc đã hoàn tất</h2><p>Ngày làm việc cuối: {completed.lastWorkingDay ?? "Chưa xác định"}.</p></section> : hasOpenRequest && request ? <section className="panel offboarding-request-status"><div><span className="eyebrow">{request.id}</span><StatusPill tone="warning">{request.status === "pending" ? "Chờ quản lý xác nhận" : "Chờ HR xử lý"}</StatusPill></div><h2>Đơn xin nghỉ việc đã gửi</h2><p>Ngày làm việc cuối đề xuất: <strong>{request.date}</strong></p><p>Lý do: {request.detail}</p>{request.note && <p>Phản hồi: {request.note}</p>}</section> : <section className="panel offboarding-self-empty">
         <span><Check size={24} strokeWidth={1.5} /></span>
-        <h3>Không có quy trình nghỉ việc đang hoạt động</h3>
-        <p>Khi HR khởi tạo quy trình, ngày làm việc cuối, checklist và thiết bị cần bàn giao sẽ xuất hiện tại đây. Trạng thái tài khoản cần kiểm tra riêng tại Admin.</p>
+        <h3>{request?.status === "rejected" ? "Đơn xin nghỉ việc đã bị từ chối" : "Chưa có đơn xin nghỉ việc"}</h3>
+        <p>{request?.status === "rejected" ? request.note || "Bạn có thể tạo đơn mới nếu cần." : person ? "Tạo đơn xin nghỉ việc để gửi ngày làm việc cuối đề xuất và lý do. Sau khi được xác nhận, HR sẽ khởi tạo quy trình bàn giao." : "Chưa có hồ sơ nhân sự gắn với vai trò demo này."}</p>
       </section>}
+      <WorkflowDialog open={open} onOpenChange={setOpen} title="Tạo đơn xin nghỉ việc" description="Đơn sẽ chuyển đến quản lý trực tiếp (nếu có), sau đó đến HR. Gửi đơn chưa bắt đầu quy trình bàn giao." footer={<><button className="secondary-button" onClick={() => setOpen(false)}>Hủy</button><button className="primary-button" onClick={submitResignation}>Gửi đơn</button></>}>
+        <FormField label="Ngày làm việc cuối đề xuất" required><input type="date" min={hrToday()} value={lastWorkingDay} onChange={(event) => setLastWorkingDay(event.target.value)} /></FormField>
+        <FormField label="Lý do xin nghỉ việc" required><textarea rows={5} maxLength={2000} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nêu lý do và thông tin bàn giao dự kiến..." /></FormField>
+      </WorkflowDialog>
     </div>
   );
 }
