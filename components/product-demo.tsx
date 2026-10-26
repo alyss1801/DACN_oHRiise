@@ -12,8 +12,12 @@ import { Sidebar } from "./layout/sidebar";
 import { TopBar } from "./layout/top-bar";
 import { EmployeeHome } from "@/features/dashboard/employee-home";
 import { DemoDataProvider } from "@/features/demo/demo-data-context";
+import { useDemoData } from "@/features/demo/demo-data-context";
+import { DemoClockProvider, useDemoClock } from "@/features/demo/demo-clock-context";
 import { IamProvider, useIam } from "@/features/admin/iam/iam-context";
-import { HrDemoProvider } from "@/features/hr/hr-demo-context";
+import { HrDemoProvider, useHrDemo } from "@/features/hr/hr-demo-context";
+import { LeaveDemoProvider, useLeaveDemo } from "@/features/leave/leave-demo-context";
+import { WfhDemoProvider, useWfhDemo } from "@/features/wfh/wfh-demo-context";
 import { ModuleVisualProvider } from "@/features/employee/workspace-frame";
 import { SessionProvider, useSession } from "@/features/session/session-context";
 import { navigationFor } from "@/lib/navigation";
@@ -24,26 +28,32 @@ export function ProductDemo({ initialModule = "home" }: { initialModule?: string
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <DemoDataProvider>
+      <DemoClockProvider><DemoDataProvider><WfhDemoProvider>
         <SessionProvider>
-          <HrDemoProvider><IamProvider>
+          <HrDemoProvider><LeaveDemoProvider><IamProvider>
             {signedIn ? <AuthenticatedProduct initialModule={initialModule} onSignOut={() => setSignedIn(false)} /> : <LoginScreen onSignIn={() => setSignedIn(true)} />}
             <Toaster theme="light" position="bottom-right" richColors closeButton />
-          </IamProvider></HrDemoProvider>
+          </IamProvider></LeaveDemoProvider></HrDemoProvider>
         </SessionProvider>
-      </DemoDataProvider>
+      </WfhDemoProvider></DemoDataProvider></DemoClockProvider>
     </ThemeProvider>
   );
 }
 
 function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: string; onSignOut: () => void }) {
   const { session } = useSession();
-  const { hasUnsavedDraft, assignmentDraft, templateDraft, applyAssignment, discardAssignment, saveTemplateDraft, discardTemplateDraft } = useIam();
+  const { resetHrDemo } = useHrDemo();
+  const { resetLeaveDemo } = useLeaveDemo();
+  const { resetWfhDemo } = useWfhDemo();
+  const { resetBusinessRequests } = useDemoData();
+  const clock = useDemoClock();
+  const { hasUnsavedDraft, assignmentDraft, templateDraft, applyAssignment, discardAssignment, saveTemplateDraft, discardTemplateDraft, resetIamDemo } = useIam();
   const [activeId, setActiveId] = useState(normalizeModuleId(initialModule));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const reduceMotion = useReducedMotion();
   const visibleItems = useMemo(() => navigationFor(session).flatMap((group) => group.items), [session]);
   const activeTitle = visibleItems.flatMap((item) => [item, ...(item.children ?? [])]).find((item) => item.id === activeId || (item.id === "access/users" && activeId.startsWith("access/")) || (item.id !== "access/users" && activeId.startsWith(`${item.id}/`)))?.label ?? "Truy cập bị giới hạn";
@@ -98,6 +108,8 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
       <Sidebar activeId={activeId} onNavigate={navigate} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} onSignOut={onSignOut} collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} />
       <div className="app-main">
         <TopBar title={activeTitle} visual={moduleVisual} onMenu={() => setMobileOpen(true)} onCommand={() => setCommandOpen(true)} onNavigate={navigate} />
+        <div className="demo-clock-bar"><label>Đồng hồ nghiệp vụ <select value={clock.mode} onChange={(event) => clock.setMode(event.target.value as "scenario" | "real")}><option value="scenario">Ngày kịch bản</option><option value="real">Thời gian thực</option></select></label>{clock.mode === "scenario" && <input type="date" aria-label="Ngày kịch bản" value={clock.scenarioDate} onChange={(event) => clock.setScenarioDate(event.target.value)} />}{session.id === "system-admin" && <button type="button" onClick={() => setConfirmReset(true)}>Đặt lại HR · phép · WFH · IAM</button>}</div>
+        {confirmReset && <section className="demo-reset-confirm" aria-label="Xác nhận đặt lại dữ liệu demo"><div><strong>Đặt lại dữ liệu HR, nghỉ phép, WFH và IAM?</strong><span>Đặt lại hồ sơ HR, đơn phép, đơn/phiên WFH và IAM về seed demo. Không xóa dữ liệu trình duyệt khác, không ảnh hưởng backend.</span></div><button className="secondary-button" onClick={() => setConfirmReset(false)}>Hủy</button><button className="primary-button" onClick={() => { resetHrDemo(); resetLeaveDemo(); resetBusinessRequests(); resetWfhDemo(); resetIamDemo(); setConfirmReset(false); navigate("home", true); }}>Xác nhận đặt lại</button></section>}
         <main className="page-content">
           {pendingNavigation && <section className="iam-navigation-guard"><div><strong>Bạn có thay đổi chưa lưu</strong><span>Lưu hoặc hủy bản nháp trước khi rời khỏi không gian hiện tại.</span></div><button className="secondary-button" onClick={() => setPendingNavigation(null)}>Tiếp tục chỉnh sửa</button><button className="secondary-button" onClick={() => { discardAssignment(); discardTemplateDraft(); const target = pendingNavigation; setPendingNavigation(null); navigate(target, true); }}>Hủy thay đổi & rời đi</button><button className="primary-button" onClick={() => { if (assignmentDraft) applyAssignment(); if (templateDraft) saveTemplateDraft(); const target = pendingNavigation; setPendingNavigation(null); navigate(target, true); }}>Lưu & rời đi</button></section>}
           <AnimatePresence initial={false}>
@@ -107,7 +119,7 @@ function AuthenticatedProduct({ initialModule, onSignOut }: { initialModule: str
             </motion.div>}
           </AnimatePresence>
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div className="route-stage" key={activeId} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: reduceMotion ? 0 : 0.22, delay: moduleVisual && !reduceMotion ? .16 : 0, ease: [0.2, 0.75, 0.25, 1] }}>
+            <motion.div className="route-stage" key={`${activeId}-${clock.mode}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: reduceMotion ? 0 : 0.22, delay: moduleVisual && !reduceMotion ? .16 : 0, ease: [0.2, 0.75, 0.25, 1] }}>
               <ModuleVisualProvider moduleId={activeId}>{activeId === "home" ? <EmployeeHome onNavigate={navigate} /> : <ModuleWorkspace moduleId={activeId} onHome={() => navigate("home")} onNavigate={navigate} />}</ModuleVisualProvider>
             </motion.div>
           </AnimatePresence>

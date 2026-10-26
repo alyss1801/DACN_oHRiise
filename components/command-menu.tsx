@@ -32,7 +32,6 @@ export function CommandMenu({ open, onOpenChange, onNavigate }: { open: boolean;
               ))}
               {can("accounts") && <Command.Group heading="Tài khoản"><Command.Item value="Nguyễn Thanh Lan HR Tổng account" onSelect={() => { selectAccount(accounts[0].id); onNavigate("accounts"); onOpenChange(false); }}><Search size={16} strokeWidth={1.5} /><span>{accounts[0].name} · {accounts[0].id}</span><small>Mở</small></Command.Item></Command.Group>}
               {can("approvals") && <Command.Group heading="Yêu cầu"><Command.Item value={`${requests.find((item) => item.status === "pending")?.id ?? ""} approval request`} onSelect={() => { onNavigate("approvals"); onOpenChange(false); }}><Search size={16} strokeWidth={1.5} /><span>{requests.filter((item) => item.status === "pending").length} yêu cầu chờ duyệt</span><small>Mở</small></Command.Item></Command.Group>}
-              {can("ai-cv") && <Command.Group heading="Ứng viên"><Command.Item value="Nguyễn Văn An Backend Engineer candidate" onSelect={() => { onNavigate("ai-cv"); onOpenChange(false); }}><Search size={16} strokeWidth={1.5} /><span>Nguyễn Văn An · Backend Engineer</span><small>91 điểm</small></Command.Item></Command.Group>}
             </Command.List>
             <div className="command-footer"><span><kbd>↑↓</kbd> di chuyển</span><span><kbd>↵</kbd> mở</span><span><kbd>esc</kbd> đóng</span></div>
           </Command>

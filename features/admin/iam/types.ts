@@ -34,6 +34,7 @@ export type DataScope = {
 
 export type Account = {
   id: string;
+  employeeId: string;
   employeeCode: string;
   name: string;
   initials: string;

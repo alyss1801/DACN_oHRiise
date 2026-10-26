@@ -5,6 +5,10 @@ import { CalendarDays, Check, Clock3, QrCode, RefreshCw, Repeat2, TimerReset, Us
 import { toast } from "sonner";
 import { useDemoData } from "@/features/demo/demo-data-context";
 import { FormField, StatusPill, WorkflowDialog, WorkspaceHeader } from "./workspace-frame";
+import { useHrDemo } from "@/features/hr/hr-demo-context";
+import { scheduledDisableAt } from "@/features/hr/offboarding-model";
+import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
+import { useSession } from "@/features/session/session-context";
 
 const week = [
   { day: "Thứ Hai", date: "12/10", shift: "08:30–17:30", mode: "Văn phòng", active: true },
@@ -99,15 +103,20 @@ export function ScheduleWorkspace({ onNavigate }: { onNavigate: (id: string) => 
 }
 
 export function OffboardingStatusWorkspace() {
+  const { session } = useSession();
+  const { cases, assets, employees } = useHrDemo();
+  const selfId = personaEmployeeIds[session.id];
+  const person = employees.find((item) => item.id === selfId);
+  const current = cases.find((item) => item.employeeId === selfId && item.kind === "offboarding" && !item.completedAt && !item.cancelledAt);
+  const held = assets.filter((item) => item.holderId === selfId);
   return (
     <div className="page-stack">
       <WorkspaceHeader eyebrow="EMPLOYMENT STATUS" title="Trạng thái nghỉ việc" description="Theo dõi thông báo và checklist bàn giao nếu có quy trình offboarding." />
-      <section className="panel offboarding-self-empty">
+      {current ? <section className="panel"><span className="eyebrow">{current.id} · DEMO CỤC BỘ</span><h2>Đang bàn giao</h2><p>{person?.name} · Ngày làm việc cuối: {current.lastWorkingDay ?? "Chưa xác định"}. Thời điểm xử lý tài khoản dự kiến: {scheduledDisableAt(current) ? new Date(scheduledDisableAt(current)!).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa xác định"}. Mở quy trình không đồng nghĩa tài khoản đã bị khóa.</p><div className="hr-task-list">{current.tasks.map((task) => <div key={task.id} className="hr-task-row"><span className={`hr-task-check ${task.doneAt ? "done" : ""}`}>{task.doneAt ? "✓" : ""}</span><span><strong>{task.label}</strong><small>{task.owner} · hạn {task.deadline}{task.note ? ` · ${task.note}` : ""}</small></span><StatusPill tone={task.doneAt ? "success" : "warning"}>{task.doneAt ? "Xong" : "Đang chờ"}</StatusPill></div>)}</div><p>{held.length ? `${held.length} tài sản đang chờ bàn giao hoặc thu hồi.` : "Không còn tài sản đang giữ trong bộ dữ liệu demo."}</p></section> : <section className="panel offboarding-self-empty">
         <span><Check size={24} strokeWidth={1.5} /></span>
         <h3>Không có quy trình nghỉ việc đang hoạt động</h3>
-        <p>Hợp đồng và tài khoản của bạn đang ở trạng thái bình thường. Khi HR khởi tạo quy trình, ngày làm việc cuối, bàn giao và thu hồi thiết bị sẽ xuất hiện tại đây.</p>
-        <div><StatusPill tone="success">Hợp đồng hiệu lực</StatusPill><StatusPill tone="success">Tài khoản hoạt động</StatusPill></div>
-      </section>
+        <p>Khi HR khởi tạo quy trình, ngày làm việc cuối, checklist và thiết bị cần bàn giao sẽ xuất hiện tại đây. Trạng thái tài khoản cần kiểm tra riêng tại Admin.</p>
+      </section>}
     </div>
   );
 }

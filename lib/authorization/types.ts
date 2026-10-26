@@ -45,6 +45,7 @@ export type SensitiveFieldPolicy = {
 
 export type PersonaId =
   | "employee"
+  | "product-lead"
   | "team-lead"
   | "hr-total"
   | "hr-branch"

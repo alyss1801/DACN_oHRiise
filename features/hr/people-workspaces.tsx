@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Check, ChevronDown, ChevronRight, Circle, EyeOff, FileText, Laptop2, MapPin, Network, Plus, Search, ShieldCheck, UsersRound } from "lucide-react";
+import { Check, EyeOff, FileText, Laptop2, Plus, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/features/session/session-context";
 import { canAccessScopedRecord } from "@/lib/authorization/engine";
@@ -58,19 +58,6 @@ export function EmployeesWorkspace() {
 }
 
 function Info({ label, value, sensitive }: { label: string; value: string; sensitive?: boolean }) { return <div><span>{label}{sensitive && <EyeOff size={11} strokeWidth={1.5} />}</span><strong>{value}</strong></div>; }
-
-const departments = [
-  { name: "Ban Giám đốc", lead: "Đặng Quốc Hùng", count: 4, children: [] },
-  { name: "Nhân sự", lead: "Nguyễn Thanh Lan", count: 12, children: ["HR Operations", "Talent Acquisition", "C&B"] },
-  { name: "Công nghệ thông tin", lead: "Phan Đức Minh", count: 86, children: ["Data Platform", "Product Engineering", "Infrastructure"] },
-  { name: "Kinh doanh", lead: "Trần Quốc Duy", count: 64, children: ["Enterprise Sales", "SMB Sales"] },
-  { name: "Vận hành & Logistics", lead: "Võ Anh Tuấn", count: 41, children: ["Warehouse", "Fulfillment"] },
-];
-
-export function OrganizationWorkspace() {
-  const [expanded, setExpanded] = useState<string[]>(["Công nghệ thông tin", "Nhân sự"]);
-  return <div className="page-stack"><WorkspaceHeader eyebrow="ORGANIZATION" title="Cấu trúc tổ chức" description="Phòng ban, tuyến báo cáo và quan hệ Team Lead theo phạm vi công ty." action={<button className="primary-button" onClick={() => toast.success("Đã tạo bản nháp phòng ban mới.")}><Plus size={15} strokeWidth={1.5} /> Thêm đơn vị</button>} /><section className="org-layout"><article className="panel org-tree"><div className="org-root"><span><Building2 size={18} strokeWidth={1.5} /></span><div><strong>oHRiise Company</strong><p>328 nhân sự · 4 chi nhánh</p></div></div><div className="org-branches">{departments.map((department) => <div className="org-node" key={department.name}><button onClick={() => setExpanded((current) => current.includes(department.name) ? current.filter((item) => item !== department.name) : [...current, department.name])}>{department.children.length ? expanded.includes(department.name) ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} /> : <Circle size={7} strokeWidth={1.5} />}<span><Network size={15} strokeWidth={1.5} /></span><div><strong>{department.name}</strong><small>{department.lead} · {department.count} nhân sự</small></div></button>{expanded.includes(department.name) && department.children.map((child) => <div className="org-child" key={child}><i /><span><UsersRound size={13} strokeWidth={1.5} /></span><div><strong>{child}</strong><small>Team / function</small></div></div>)}</div>)}</div></article><aside className="panel org-insight"><span className="eyebrow">TỔNG QUAN</span><div className="org-stat"><strong>10</strong><span>phòng ban</span></div><div className="org-stat"><strong>23</strong><span>đội / dự án</span></div><div className="org-stat"><strong>18</strong><span>Team Lead</span></div><div className="privacy-note"><MapPin size={15} strokeWidth={1.5} /><span>Cấu trúc đang hiển thị toàn công ty. HR Chi nhánh chỉ thấy đơn vị thuộc chi nhánh được cấp.</span></div></aside></section></div>;
-}
 
 export function OffboardingWorkspace() {
   const [checks, setChecks] = useState([true, false, false]);

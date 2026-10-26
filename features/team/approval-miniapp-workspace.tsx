@@ -31,6 +31,13 @@ import {
 import { FormField, StatusPill, WorkflowDialog, WorkspaceHeader } from "@/features/employee/workspace-frame";
 import { useSession } from "@/features/session/session-context";
 import { can } from "@/lib/authorization/engine";
+import { canAccessScopedRecord } from "@/lib/authorization/engine";
+import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
+import { demoBusinessDate } from "@/lib/demo-clock";
+import { useHrDemo } from "@/features/hr/hr-demo-context";
+import { useLeaveDemo } from "@/features/leave/leave-demo-context";
+import { validateWfhPlan, wfhMonthlyQuota } from "@/features/wfh/wfh-plan-model";
+import { validateAttendanceRequest } from "@/features/hr/attendance-request-model";
 
 type ApprovalView = "create" | "center" | "analytics" | "data";
 type CenterFolder = "todo" | "done" | "cc" | "sent";
@@ -56,36 +63,47 @@ const requestTemplates: RequestTemplate[] = [
   { id: "leave", label: "Đơn nghỉ phép", shortLabel: "Nghỉ phép", description: "Phép năm, nghỉ bệnh hoặc nghỉ khác", category: "timeoff", type: "Nghỉ phép", prefix: "LV-2026", icon: CalendarDays, tone: "blue" },
 ];
 
-const supportedTypes = requestTemplates.map((item) => item.type);
+// Leave has its own ID-based workflow; do not mix legacy free-text leave rows into this inbox.
+const activeTemplates = requestTemplates.filter((item) => ["adjustment", "overtime", "wfh", "leave"].includes(item.id));
+const supportedTypes = activeTemplates.filter((item) => item.id !== "leave").map((item) => item.type);
 
-export function ApprovalMiniappWorkspace() {
+export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { initialTemplate?: string; onNavigate?: (id: string) => void }) {
   const { session } = useSession();
+  const { employees, attendance, periods, policies } = useHrDemo();
+  const { store: leaveStore } = useLeaveDemo();
   const { requests, addBusinessRequest, decideBusinessRequest } = useDemoData();
   const canApprove = can(session, "approvals", "approve");
+  const selfId = personaEmployeeIds[session.id];
+  const me = employees.find((item) => item.id === selfId);
   const scopedRequests = useMemo(
-    () => canApprove ? requests : requests.filter((item) => item.employee === "Nguyễn Thu Hà"),
-    [canApprove, requests],
+    () => requests.filter((item) => { const person = employees.find((entry) => entry.id === item.employeeId || entry.name === item.employee); return person && (person.id === selfId || (canApprove && item.approverId === selfId && canAccessScopedRecord(session, { employeeId: person.id, branch: person.branch, department: person.department, managerId: person.managerId }))); }),
+    [canApprove, employees, requests, selfId, session],
   );
   const approvalRequests = useMemo(
     () => scopedRequests.filter((item) => supportedTypes.includes(item.type)),
     [scopedRequests],
   );
-  const pendingCount = approvalRequests.filter((item) => item.status === "pending").length;
+  const pendingCount = approvalRequests.filter((item) => item.status === "pending" && canApprove && item.approverId === selfId).length;
 
   const [view, setView] = useState<ApprovalView>("create");
   const [folder, setFolder] = useState<CenterFolder>(canApprove ? "todo" : "sent");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<RequestCategory>("all");
-  const [template, setTemplate] = useState<RequestTemplate | null>(null);
-  const [requestDate, setRequestDate] = useState("10/10/2026");
+  const [template, setTemplate] = useState<RequestTemplate | null>(activeTemplates.find((item) => item.id === initialTemplate) ?? null);
+  const [requestDate, setRequestDate] = useState(demoBusinessDate());
   const [requestDetail, setRequestDetail] = useState("");
   const [requestOption, setRequestOption] = useState("Cả ngày");
+  const [correctionIn, setCorrectionIn] = useState("");
+  const [correctionOut, setCorrectionOut] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedId, setSelectedId] = useState(approvalRequests[0]?.id ?? "");
-  const [decision, setDecision] = useState<"approve" | "reject" | "clarify" | null>(null);
+  const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [decisionNote, setDecisionNote] = useState("");
+  const quota = me ? wfhMonthlyQuota(policies, requestDate) : null;
+  const attendanceRow = attendance.find((item) => item.employeeId === selfId && item.date === requestDate);
+  const usedQuota = me ? requests.filter((item) => item.type === "WFH" && item.employeeId === me.id && item.date.startsWith(requestDate.slice(0, 7)) && item.status !== "rejected").length : 0;
 
-  const visibleTemplates = requestTemplates.filter((item) => (
+  const visibleTemplates = activeTemplates.filter((item) => (
     (category === "all" || item.category === category)
     && `${item.label} ${item.description}`.toLowerCase().includes(query.toLowerCase())
   ));
@@ -93,15 +111,24 @@ export function ApprovalMiniappWorkspace() {
   const selected = approvalRequests.find((item) => item.id === selectedId) ?? approvalRequests[0];
 
   function openRequest(item: RequestTemplate) {
+    if (item.id === "leave" && onNavigate) { onNavigate("approvals/leave/new"); return; }
     setTemplate(item);
-    setRequestDate("10/10/2026");
+    setRequestDate(demoBusinessDate());
     setRequestDetail("");
     setRequestOption(item.id === "adjustment" ? "Thiếu check-out" : item.id === "overtime" ? "2 giờ" : item.id === "leave" ? "Phép năm" : "Cả ngày");
+    setCorrectionIn(""); setCorrectionOut("");
     setAmount("");
   }
 
   function submitRequest() {
     if (!template) return;
+    if (!me || me.status === "inactive") { toast.error("Persona này không có quan hệ lao động đang hoạt động để gửi yêu cầu."); return; }
+    const selectedDay = new Date(`${requestDate}T00:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(requestDate) || Number.isNaN(selectedDay.getTime()) || selectedDay.toISOString().slice(0, 10) !== requestDate || (template.id !== "adjustment" && requestDate < demoBusinessDate())) { toast.error("Chọn ngày hợp lệ; đơn mới không ở quá khứ (trừ điều chỉnh bản công). "); return; }
+    const plan = template.id === "wfh" ? validateWfhPlan({ employee: me, employees, date: requestDate, today: demoBusinessDate(), requests, leaves: leaveStore.requests, periods, policies }) : null;
+    if (plan && !plan.ok) { toast.error(plan.error); return; }
+    const attendancePlan = template.id === "adjustment" || template.id === "overtime" ? validateAttendanceRequest({ type: template.type as "Điều chỉnh chấm công" | "Đăng ký OT", employee: me, date: requestDate, today: demoBusinessDate(), attendance, periods, requests, correctionIn, correctionOut, overtimeHours: Number.parseInt(requestOption, 10) }) : null;
+    if (attendancePlan && !attendancePlan.ok) { toast.error(attendancePlan.error); return; }
     if (requestDetail.trim().length < 5) {
       toast.error("Vui lòng nhập nội dung yêu cầu rõ ràng hơn.");
       return;
@@ -113,14 +140,18 @@ export function ApprovalMiniappWorkspace() {
 
     const detail = template.id === "expense"
       ? `${requestDetail.trim()} · ${amount} ₫`
+      : template.id === "adjustment" ? `${attendanceRow?.issue === "missing-in" ? "Thiếu check-in" : attendanceRow?.issue === "missing-out" ? "Thiếu check-out" : "Sai thời gian"} · ${requestDetail.trim()}`
       : `${requestOption} · ${requestDetail.trim()}`;
     const id = addBusinessRequest({
       idPrefix: template.prefix,
       type: template.type,
-      employee: "Nguyễn Thu Hà",
-      initials: "NH",
+      employeeId: me.id,
+      employee: me.name,
+      initials: me.initials,
       date: requestDate,
       detail,
+      ...(plan?.ok ? { approverId: plan.approverId, approverName: employees.find((item) => item.id === plan.approverId)?.name, wfhPolicyVersion: plan.policyVersion } : {}),
+      ...(attendancePlan?.ok ? { approverId: attendancePlan.managerId, approverName: employees.find((item) => item.id === attendancePlan.managerId)?.name, ...(template.id === "adjustment" ? { attendanceId: attendancePlan.row?.id, attendanceVersion: attendancePlan.row?.version ?? 1, correctionIn: correctionIn || undefined, correctionOut: correctionOut || undefined } : { overtimeHours: Number.parseInt(requestOption, 10) }) } : {}),
     });
     setTemplate(null);
     setSelectedId(id);
@@ -131,16 +162,14 @@ export function ApprovalMiniappWorkspace() {
 
   function submitDecision() {
     if (!selected || !decision) return;
+    if (!canApprove || selected.approverId !== selfId || selected.employeeId === selfId) { toast.error("Chỉ quản lý trực tiếp được giao mới có thể xử lý đơn này."); return; }
+    if (selected.type === "Điều chỉnh chấm công" && decision === "approve" && (!selected.attendanceId || attendance.find((item) => item.id === selected.attendanceId && item.employeeId === selected.employeeId && item.resolution !== "approved" && item.resolution !== "rejected" && (item.version ?? 1) === selected.attendanceVersion) === undefined)) { toast.error("Bản công đã thay đổi; HR cần xem lại trước khi duyệt đơn cũ."); return; }
     if (decision !== "approve" && decisionNote.trim().length < 8) {
       toast.error("Cần nhập nội dung ít nhất 8 ký tự.");
       return;
     }
-    if (decision === "clarify") {
-      toast.success("Đã gửi yêu cầu bổ sung thông tin.");
-    } else {
-      decideBusinessRequest(selected.id, decision === "approve" ? "approved" : "rejected", decisionNote);
-      toast.success(decision === "approve" ? "Đã phê duyệt yêu cầu." : "Đã từ chối yêu cầu.");
-    }
+    if (!decideBusinessRequest(selected.id, decision === "approve" ? "approved" : "rejected", decisionNote, session.label, selfId)) { toast.error("Hồ sơ đã đổi trạng thái hoặc không thuộc tuyến duyệt của bạn."); return; }
+    toast.success(decision === "approve" ? selected.type === "Điều chỉnh chấm công" ? "Đã xác nhận; chuyển HR đối soát bản công gốc." : "Đã phê duyệt yêu cầu. OT chưa tự cộng công hoặc phép bù." : "Đã từ chối yêu cầu.");
     setDecision(null);
     setDecisionNote("");
   }
@@ -153,7 +182,7 @@ export function ApprovalMiniappWorkspace() {
 
   return (
     <div className="page-stack approval-miniapp-workspace">
-      <WorkspaceHeader title="Phê duyệt" subtitle={`${pendingCount} yêu cầu đang chờ · ${approvalRequests.length} hồ sơ trong phạm vi`} />
+      <WorkspaceHeader title="Phê duyệt" />
 
       <nav className="approval-top-tabs approval-miniapp-tabs" aria-label="Điều hướng miniapp Phê duyệt">
         <MiniappTab active={view === "create"} icon={Send} label="Gửi yêu cầu" onClick={() => setView("create")} />
@@ -180,6 +209,8 @@ export function ApprovalMiniappWorkspace() {
           folder={folder}
           setFolder={setFolder}
           canApprove={canApprove}
+          selfId={selfId}
+          selfName={me?.name}
           setDecision={setDecision}
         />
       )}
@@ -194,17 +225,18 @@ export function ApprovalMiniappWorkspace() {
         footer={<><button className="secondary-button" onClick={() => setTemplate(null)}>Hủy</button><button className="primary-button" onClick={submitRequest}><Send size={15} strokeWidth={1.5} /> Gửi yêu cầu</button></>}
       >
         <div className="form-grid two-cols">
-          <FormField label="Ngày áp dụng" required><input value={requestDate} onChange={(event) => setRequestDate(event.target.value)} /></FormField>
+          <FormField label="Ngày áp dụng" required><input type="date" min={template?.id === "adjustment" ? undefined : demoBusinessDate()} value={requestDate} onChange={(event) => setRequestDate(event.target.value)} /></FormField>
           {template?.id === "expense" ? (
             <FormField label="Số tiền đề nghị" required><input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="4.850.000" /></FormField>
           ) : (
             <FormField label={template?.id === "adjustment" ? "Loại điều chỉnh" : template?.id === "overtime" ? "Thời lượng OT" : template?.id === "leave" ? "Loại nghỉ" : "Thời lượng"} required>
-              <select value={requestOption} onChange={(event) => setRequestOption(event.target.value)}>
-                {template?.id === "adjustment" ? <><option>Thiếu check-in</option><option>Thiếu check-out</option><option>Sai thời gian</option></> : template?.id === "overtime" ? <><option>1 giờ</option><option>2 giờ</option><option>3 giờ</option><option>4 giờ</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <><option>Cả ngày</option><option>Buổi sáng</option><option>Buổi chiều</option></>}
-              </select>
+              {template?.id === "adjustment" ? <input readOnly value={attendanceRow ? attendanceRow.issue === "missing-in" ? "Thiếu check-in" : attendanceRow.issue === "missing-out" ? "Thiếu check-out" : "Sai thời gian" : "Chọn ngày có ngoại lệ"} /> : <select value={requestOption} onChange={(event) => setRequestOption(event.target.value)}>{template?.id === "overtime" ? <><option>1 giờ</option><option>2 giờ</option><option>3 giờ</option><option>4 giờ</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <option>Cả ngày</option>}</select>}
             </FormField>
           )}
         </div>
+        {template?.id === "wfh" && <p className="muted">Quỹ tháng {requestDate.slice(0, 7)}: {usedQuota}/{quota?.days ?? "—"} ngày đã dùng hoặc đang chờ · mỗi đơn một ngày · chính sách v{quota?.version ?? "—"}.</p>}
+        {template?.id === "adjustment" && <><p className="muted">{attendanceRow ? `${attendanceRow.id} · gốc ${attendanceRow.events.find((item) => item.kind === "check-in")?.at ?? "—"}–${attendanceRow.events.find((item) => item.kind === "check-out")?.at ?? "—"} · ${attendanceRow.issue}` : "Chọn ngày có bản ghi công bất thường của bạn trong kỳ đang đối soát."} Bản gốc không bị sửa.</p><div className="form-grid two-cols"><FormField label="Giờ vào đề nghị"><input type="time" value={correctionIn} onChange={(event) => setCorrectionIn(event.target.value)} /></FormField><FormField label="Giờ ra đề nghị"><input type="time" value={correctionOut} onChange={(event) => setCorrectionOut(event.target.value)} /></FormField></div></>}
+        {template?.id === "overtime" && <p className="muted">OT được duyệt chỉ là kế hoạch 1–4 giờ. Chưa tự tính bảng công, phép bù hoặc lương.</p>}
         <div className="dialog-field-gap">
           <FormField label={template?.id === "expense" ? "Mục đích chi" : template?.id === "wfh" ? "Kế hoạch công việc" : template?.id === "overtime" ? "Công việc dự kiến" : "Nội dung / lý do"} required>
             <textarea value={requestDetail} onChange={(event) => setRequestDetail(event.target.value)} placeholder="Mô tả đủ thông tin để người duyệt ra quyết định..." />
@@ -216,9 +248,9 @@ export function ApprovalMiniappWorkspace() {
         <WorkflowDialog
           open={decision !== null}
           onOpenChange={(open) => !open && setDecision(null)}
-          title={decision === "approve" ? "Xác nhận phê duyệt" : decision === "clarify" ? "Yêu cầu bổ sung" : "Từ chối yêu cầu"}
+          title={decision === "approve" ? "Xác nhận phê duyệt" : "Từ chối yêu cầu"}
           description={`${selected.id} · ${selected.employee}`}
-          footer={<><button className="secondary-button" onClick={() => setDecision(null)}>Hủy</button><button className={decision === "approve" ? "primary-button" : "secondary-button reject"} onClick={submitDecision}>{decision === "approve" ? "Phê duyệt" : decision === "clarify" ? "Gửi yêu cầu" : "Gửi lý do từ chối"}</button></>}
+          footer={<><button className="secondary-button" onClick={() => setDecision(null)}>Hủy</button><button className={decision === "approve" ? "primary-button" : "secondary-button reject"} onClick={submitDecision}>{decision === "approve" ? "Phê duyệt" : "Gửi lý do từ chối"}</button></>}
         >
           <FormField label={decision === "approve" ? "Ghi chú (không bắt buộc)" : "Nội dung"} required={decision !== "approve"}>
             <textarea value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} placeholder="Thêm ngữ cảnh rõ ràng cho nhân viên..." />
@@ -236,16 +268,14 @@ function MiniappTab({ active, icon: Icon, label, count, onClick }: { active: boo
 function RequestCatalog({ query, setQuery, category, setCategory, visibleTemplates, openRequest }: { query: string; setQuery: (value: string) => void; category: RequestCategory; setCategory: (value: RequestCategory) => void; visibleTemplates: RequestTemplate[]; openRequest: (item: RequestTemplate) => void }) {
   return (
     <section className="request-catalog">
-      <div className="approval-search"><Search size={17} strokeWidth={1.5} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm loại yêu cầu..." /></div>
-      <div className="request-suggestions"><h2>Đề xuất</h2><div>{requestTemplates.slice(0, 2).map((item) => <RequestTile key={item.id} item={item} onClick={() => openRequest(item)} />)}</div></div>
+      <div className="approval-search"><Search size={17} strokeWidth={1.5} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm loại yêu cầu..." aria-label="Tìm loại yêu cầu" /></div>
       <div className="request-library panel">
         <aside>
-          <span>Tất cả yêu cầu</span>
-          {[{ id: "all", label: "Tất cả" }, { id: "attendance", label: "Điểm danh & OT" }, { id: "finance", label: "Tài chính" }, { id: "timeoff", label: "WFH & nghỉ phép" }].map((item) => <button className={category === item.id ? "is-active" : ""} key={item.id} onClick={() => setCategory(item.id as RequestCategory)}>{item.label}</button>)}
+          {[{ id: "all", label: "Tất cả" }, { id: "attendance", label: "Điểm danh & OT" }, { id: "timeoff", label: "WFH & nghỉ phép" }].map((item) => <button className={category === item.id ? "is-active" : ""} key={item.id} onClick={() => setCategory(item.id as RequestCategory)}>{item.label}</button>)}
         </aside>
         <div className="request-library-content">
           <header><div><h2>{category === "all" ? "Tất cả yêu cầu" : category === "attendance" ? "Điểm danh & OT" : category === "finance" ? "Tài chính" : "WFH & nghỉ phép"}</h2></div><span>{visibleTemplates.length} biểu mẫu</span></header>
-          <div className="request-tile-grid">{visibleTemplates.map((item) => <RequestTile key={item.id} item={item} onClick={() => openRequest(item)} />)}</div>
+          <div className="request-tile-grid">{visibleTemplates.length ? visibleTemplates.map((item) => <RequestTile key={item.id} item={item} onClick={() => openRequest(item)} />) : <p className="request-empty">Không có biểu mẫu phù hợp.</p>}</div>
         </div>
       </div>
     </section>
@@ -257,18 +287,19 @@ function RequestTile({ item, onClick }: { item: RequestTemplate; onClick: () => 
   return <button className="request-tile" onClick={onClick}><span className={item.tone}><Icon size={20} strokeWidth={1.6} /></span><div><strong>{item.label}</strong><small>{item.description}</small></div><ChevronRight size={16} strokeWidth={1.5} /></button>;
 }
 
-function ApprovalCenter({ requests, selectedId, setSelectedId, folder, setFolder, canApprove, setDecision }: { requests: BusinessRequest[]; selectedId: string; setSelectedId: (id: string) => void; folder: CenterFolder; setFolder: (folder: CenterFolder) => void; canApprove: boolean; setDecision: (value: "approve" | "reject" | "clarify") => void }) {
+function ApprovalCenter({ requests, selectedId, setSelectedId, folder, setFolder, canApprove, selfId, selfName, setDecision }: { requests: BusinessRequest[]; selectedId: string; setSelectedId: (id: string) => void; folder: CenterFolder; setFolder: (folder: CenterFolder) => void; canApprove: boolean; selfId?: string; selfName?: string; setDecision: (value: "approve" | "reject") => void }) {
+  const isSelf = (item: BusinessRequest) => item.employeeId ? item.employeeId === selfId : item.employee === selfName;
   const folders = [
-    { id: "todo" as const, label: "Việc cần làm", icon: Inbox, count: requests.filter((item) => item.status === "pending").length },
+    { id: "todo" as const, label: "Việc cần làm", icon: Inbox, count: requests.filter((item) => item.status === "pending" && canApprove && !isSelf(item)).length },
     { id: "done" as const, label: "Xong", icon: CheckCircle2, count: requests.filter((item) => item.status === "approved" || item.status === "rejected").length },
     { id: "cc" as const, label: "Đã CC", icon: ListChecks, count: requests.filter((item) => item.status === "hr-review").length },
-    { id: "sent" as const, label: "Đã gửi", icon: Send, count: requests.filter((item) => item.employee === "Nguyễn Thu Hà").length },
+    { id: "sent" as const, label: "Đã gửi", icon: Send, count: requests.filter(isSelf).length },
   ];
   const folderRequests = requests.filter((item) => {
-    if (folder === "todo") return item.status === "pending";
+    if (folder === "todo") return item.status === "pending" && canApprove && !isSelf(item);
     if (folder === "done") return item.status === "approved" || item.status === "rejected";
     if (folder === "cc") return item.status === "hr-review";
-    return item.employee === "Nguyễn Thu Hà";
+    return isSelf(item);
   });
   const selected = folderRequests.find((item) => item.id === selectedId) ?? folderRequests[0];
 
@@ -291,7 +322,7 @@ function ApprovalCenter({ requests, selectedId, setSelectedId, folder, setFolder
       </div>
 
       {selected ? (
-        <ApprovalRecordDetail request={selected} canApprove={canApprove} setDecision={setDecision} />
+        <ApprovalRecordDetail request={selected} canApprove={canApprove && !isSelf(selected)} setDecision={setDecision} />
       ) : (
         <div className="approval-empty approval-empty-detail"><FileQuestion size={42} strokeWidth={1.3} /><strong>Chọn một hồ sơ</strong><span>Chi tiết và luồng phê duyệt sẽ hiển thị tại đây.</span></div>
       )}
@@ -309,15 +340,15 @@ function ApprovalRecordCard({ request, active, onClick }: { request: BusinessReq
   );
 }
 
-function ApprovalRecordDetail({ request, canApprove, setDecision }: { request: BusinessRequest; canApprove: boolean; setDecision: (value: "approve" | "reject" | "clarify") => void }) {
+function ApprovalRecordDetail({ request, canApprove, setDecision }: { request: BusinessRequest; canApprove: boolean; setDecision: (value: "approve" | "reject") => void }) {
   return (
     <article className="approval-record-detail">
       <header>
         <div><span>{request.id}</span><h2>{displayType(request.type)}</h2></div>
         <RequestStatus status={request.status} />
       </header>
-      <div className="approval-requester"><span className="avatar">{request.initials}</span><div><strong>{request.employee}</strong><span>Sản phẩm · HCM-Q1 · gửi {request.submitted}</span></div></div>
-      <div className="approval-detail-tabs"><button className="is-active">Chi tiết</button><button>Hồ sơ phê duyệt</button><button>Nhận xét</button></div>
+      <div className="approval-requester"><span className="avatar">{request.initials}</span><div><strong>{request.employee}</strong><span>{request.employeeId ?? "Fixture cũ"} · gửi {request.submitted}</span></div></div>
+      <div className="approval-detail-tabs"><span>Chi tiết và tuyến duyệt</span></div>
       <section className="approval-detail-section">
         <h3>Chi tiết yêu cầu</h3>
         <dl>
@@ -331,7 +362,6 @@ function ApprovalRecordDetail({ request, canApprove, setDecision }: { request: B
       {request.note && <div className="decision-note"><strong>Ghi chú quyết định</strong><p>{request.note}</p></div>}
       {canApprove && request.status === "pending" && (
         <footer className="approval-actions approval-detail-actions">
-          <button className="text-button" onClick={() => setDecision("clarify")}><FileQuestion size={15} strokeWidth={1.5} /> Yêu cầu bổ sung</button>
           <button className="secondary-button reject" onClick={() => setDecision("reject")}><X size={15} strokeWidth={1.5} /> Từ chối</button>
           <button className="primary-button" onClick={() => setDecision("approve")}><Check size={15} strokeWidth={1.5} /> Phê duyệt</button>
         </footer>
@@ -341,12 +371,13 @@ function ApprovalRecordDetail({ request, canApprove, setDecision }: { request: B
 }
 
 function ApprovalProcess({ request }: { request: BusinessRequest }) {
-  const finalLabel = request.type === "Chi phí" ? "Tài chính kiểm tra hạn mức" : "Quản lý trực tiếp phê duyệt";
+  const finalLabel = "Quản lý trực tiếp xác nhận";
   return (
     <section className="approval-process">
       <h3>Hồ sơ phê duyệt</h3>
       <div className="approval-process-step is-complete"><i><Check size={12} /></i><div><strong>Gửi yêu cầu</strong><span>{request.employee} · {request.submitted}</span></div><small>Đã gửi</small></div>
-      <div className={`approval-process-step${request.status === "pending" ? " is-current" : request.status === "approved" || request.status === "hr-review" ? " is-complete" : " is-rejected"}`}><i>{request.status === "approved" || request.status === "hr-review" ? <Check size={12} /> : <Clock3 size={12} />}</i><div><strong>{finalLabel}</strong><span>Trần Minh Quân · Team Lead</span></div><small>{statusLabel(request.status)}</small></div>
+      <div className={`approval-process-step${request.status === "pending" ? " is-current" : request.status === "approved" || request.status === "hr-review" ? " is-complete" : " is-rejected"}`}><i>{request.status === "approved" || request.status === "hr-review" ? <Check size={12} /> : <Clock3 size={12} />}</i><div><strong>{finalLabel}</strong><span>{request.approverName ?? "Chưa xác định người duyệt"}</span></div><small>{request.status === "hr-review" ? "Đã xác nhận" : statusLabel(request.status)}</small></div>
+      {request.type === "Điều chỉnh chấm công" && <div className={`approval-process-step${request.status === "hr-review" ? " is-current" : request.status === "approved" ? " is-complete" : ""}`}><i><Clock3 size={12} /></i><div><strong>HR đối soát bản công</strong><span>{request.attendanceId ?? "Chưa gắn bản công"} · không sửa sự kiện gốc</span></div><small>{request.status === "hr-review" ? "Đang chờ HR" : request.status === "approved" ? "Đã áp dụng" : "Chưa đến bước"}</small></div>}
     </section>
   );
 }
@@ -369,7 +400,7 @@ function ApprovalAnalytics({ requests }: { requests: BusinessRequest[] }) {
       <div className="approval-diagnostics-grid">
         <article className="panel workflow-health-panel">
           <header><div><h2>Sức khỏe từng luồng</h2><p>Số liệu đọc trực tiếp từ kho yêu cầu dùng chung.</p></div><BarChart3 size={20} strokeWidth={1.5} /></header>
-          <div className="workflow-health-list">{requestTemplates.map((template) => {
+          <div className="workflow-health-list">{activeTemplates.filter((item) => item.id !== "leave").map((template) => {
             const records = requests.filter((item) => item.type === template.type);
             const done = records.filter((item) => item.status !== "pending").length;
             const rate = records.length ? Math.round((done / records.length) * 100) : 0;
@@ -381,9 +412,9 @@ function ApprovalAnalytics({ requests }: { requests: BusinessRequest[] }) {
           <ListChecks size={22} strokeWidth={1.5} />
           <h2>Điểm cần chú ý</h2>
           <strong>{pending > 0 ? `${pending} hồ sơ đang chờ xử lý` : "Không có hồ sơ tồn"}</strong>
-          <p>{pending > 0 ? "Ưu tiên hồ sơ chấm công và nghỉ phép có ngày áp dụng gần nhất." : "Các luồng đang được xử lý đầy đủ."}</p>
+          <p>{pending > 0 ? "Ưu tiên đơn có ngày áp dụng gần nhất; điều chỉnh công còn bước HR." : "Không có đơn đang chờ quản lý trong phạm vi."}</p>
           <div><span>Nguồn dữ liệu</span><b>Approval workspace</b></div>
-          <div><span>Luồng đang theo dõi</span><b>{requestTemplates.length}</b></div>
+          <div><span>Luồng đang theo dõi</span><b>{activeTemplates.length - 1}</b></div>
         </aside>
       </div>
     </section>
@@ -409,12 +440,12 @@ function ApprovalDataManager({ requests, onOpen }: { requests: BusinessRequest[]
       <aside className="approval-data-sidebar">
         <header><Database size={18} strokeWidth={1.5} /><strong>Bảng chi tiết</strong></header>
         <button className={type === "all" ? "is-active" : ""} onClick={() => setType("all")}><span>Tất cả luồng</span><b>{requests.length}</b></button>
-        {requestTemplates.map((template) => <button key={template.id} className={type === template.type ? "is-active" : ""} onClick={() => setType(template.type)}><span>{template.shortLabel}</span><b>{requests.filter((item) => item.type === template.type).length}</b></button>)}
+        {activeTemplates.filter((item) => item.id !== "leave").map((template) => <button key={template.id} className={type === template.type ? "is-active" : ""} onClick={() => setType(template.type)}><span>{template.shortLabel}</span><b>{requests.filter((item) => item.type === template.type).length}</b></button>)}
       </aside>
       <div className="approval-data-content">
         <header className="approval-data-toolbar">
           <div><h2>{type === "all" ? "Tất cả dữ liệu phê duyệt" : displayType(type)}</h2><span>{visible.length} bản ghi</span></div>
-          <div><label><Search size={15} strokeWidth={1.5} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm mã, người gửi..." /></label><select value={status} onChange={(event) => setStatus(event.target.value as "all" | BusinessRequestStatus)}><option value="all">Tất cả trạng thái</option><option value="pending">Chờ phê duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option><option value="hr-review">HR review</option></select></div>
+          <div><label><Search size={15} strokeWidth={1.5} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm mã, người gửi..." /></label><select value={status} onChange={(event) => setStatus(event.target.value as "all" | BusinessRequestStatus)}><option value="all">Tất cả trạng thái</option><option value="pending">Chờ phê duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option><option value="hr-review">Chờ HR đối soát</option></select></div>
         </header>
         <div className="approval-data-table-wrap">
           <table className="approval-data-table">
@@ -436,7 +467,7 @@ function statusLabel(status: BusinessRequestStatus) {
   if (status === "pending") return "Chờ phê duyệt";
   if (status === "approved") return "Đã phê duyệt";
   if (status === "rejected") return "Đã từ chối";
-  return "HR review";
+  return "Chờ HR đối soát";
 }
 
 function displayType(type: BusinessRequestType) {
@@ -455,8 +486,8 @@ function RequestContext({ type }: { type: BusinessRequestType }) {
       : type === "Chi phí"
         ? { icon: ReceiptText, title: "Ngữ cảnh kinh phí", copy: "Yêu cầu đi qua quản lý trực tiếp trước bước kiểm tra hạn mức." }
         : type === "Đăng ký OT"
-          ? { icon: Clock3, title: "Ngữ cảnh làm thêm", copy: "Thời lượng OT đã duyệt sẽ được ghi nhận vào Quỹ thời gian sau khi đối soát chấm công." }
-          : { icon: FileClock, title: "Đối chiếu điểm danh", copy: "Log GPS và thời gian thiết bị được đính kèm để đối chiếu." };
+          ? { icon: Clock3, title: "Kế hoạch làm thêm", copy: "Quản lý xác nhận đề nghị OT; demo chưa tự cộng giờ công, phép bù hoặc tiền lương." }
+          : { icon: FileClock, title: "Đối chiếu điểm danh", copy: "Yêu cầu gắn với bản công demo; quản lý xác nhận và HR ghi adjustment riêng, sự kiện gốc không đổi." };
   const Icon = data.icon;
   return <div className="team-context"><div><Icon size={16} strokeWidth={1.5} /><strong>{data.title}</strong></div><p>{data.copy}</p></div>;
 }

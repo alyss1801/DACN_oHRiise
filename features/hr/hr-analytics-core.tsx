@@ -38,7 +38,7 @@ export function HrAnalyticsWorkspace({ onNavigate }: { onNavigate: (id: string) 
   const late = rows.filter((item) => item.issue === "late");
   const absent = rows.filter((item) => item.issue === "missing-in");
   const previousLate = previousRows.filter((item) => item.issue === "late");
-  const expiring = contracts.filter((item) => ids.has(item.employeeId) && item.status === "active" && item.endsAt >= "2026-10-20" && item.endsAt <= "2026-11-20");
+  const expiring = contracts.filter((item) => ids.has(item.employeeId) && item.status === "active" && item.endsAt && item.endsAt >= "2026-10-20" && item.endsAt <= "2026-11-20");
   const byDepartment = [...new Set(people.map((person) => person.department))].map((name) => ({ name, count: active.filter((person) => person.department === name).length })).sort((a, b) => b.count - a.count);
   const byType = [...new Set(contracts.filter((item) => ids.has(item.employeeId) && item.status === "active").map((item) => item.type))].map((name) => ({ name, count: contracts.filter((item) => ids.has(item.employeeId) && item.status === "active" && item.type === name).length }));
   const progress = cases.filter((item) => ids.has(item.employeeId));
@@ -51,7 +51,7 @@ export function HrAnalyticsWorkspace({ onNavigate }: { onNavigate: (id: string) 
   ];
 
   return <div className="page-stack hr-core">
-    <WorkspaceHeader title="People analytics" subtitle="Phân tích từ hồ sơ, sự kiện công, hợp đồng và quy trình HR dùng chung" action={can("reports", "export") ? <button className="secondary-button" onClick={() => downloadCsv(exportRows)}><Download size={14} /> Xuất CSV</button> : undefined} />
+    <WorkspaceHeader title="People analytics" action={can("reports", "export") ? <button className="secondary-button" onClick={() => downloadCsv(exportRows)}><Download size={14} /> Xuất CSV</button> : undefined} />
     <section className="panel hr-analytics-filters">
       <label>Kỳ phân tích<select value={period} onChange={(event) => setPeriod(event.target.value)}><option value="2026-10">Tháng 10/2026</option><option value="2026-09">Tháng 09/2026</option></select></label>
       <label>Chi nhánh<select value={branch} onChange={(event) => setBranch(event.target.value)} disabled={session.effectiveScope === "branch"}><option value="">{session.effectiveScope === "branch" ? session.branch : "Mọi chi nhánh"}</option>{[...new Set(scoped.map((person) => person.branch))].map((item) => <option key={item}>{item}</option>)}</select></label>

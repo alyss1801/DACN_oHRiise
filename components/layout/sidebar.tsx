@@ -40,7 +40,7 @@ export function Sidebar({ activeId, onNavigate, mobileOpen, onMobileClose, onSig
 
         <div className="workspace-chip">
           <div className="workspace-monogram">OC</div>
-          <div><strong>oHRiise Company</strong><span>Production workspace</span></div>
+          <div><strong>oHRiise Company</strong><span>Không gian demo cục bộ</span></div>
           <ChevronDown size={14} strokeWidth={1.5} />
         </div>
 

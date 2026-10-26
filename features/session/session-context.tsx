@@ -54,7 +54,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 }
 
 function scopesForPersona(personaId: PersonaId, fallback: ScopeType): ScopeType[] {
-  if (personaId === "team-lead") return ["self", "team"];
+  if (personaId === "team-lead" || personaId === "product-lead") return ["self", "team"];
   if (personaId === "hr-branch") return ["self", "branch"];
   if (personaId === "hr-total") return ["self", "department", "branch", "company"];
   return [fallback];

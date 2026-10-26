@@ -22,7 +22,6 @@ import {
   LibraryBig,
   LogOut,
   ReceiptText,
-  Sparkles,
   UserRoundCog,
   UsersRound,
   WalletCards,
@@ -55,9 +54,9 @@ const registry: NavGroup[] = [
     items: [
       { id: "home", label: "Tổng quan", resource: "home", icon: Home },
       { id: "profile", label: "Hồ sơ của tôi", resource: "profile", icon: IdCard },
-      { id: "attendance", label: "Điểm danh", resource: "attendance", icon: Clock3 },
+      { id: "attendance", label: "Chấm công", resource: "attendance", icon: Clock3 },
       { id: "schedule", label: "Lịch & Quỹ thời gian", resource: "attendance", icon: CalendarDays },
-      { id: "approvals", label: "Phê duyệt", resource: "approvals", icon: FileCheck2, badge: "5" },
+      { id: "approvals", label: "Yêu cầu & phê duyệt", resource: "approvals", icon: FileCheck2 },
     ],
   },
   {
@@ -74,6 +73,7 @@ const registry: NavGroup[] = [
     label: "Đội ngũ",
     items: [
       { id: "team", label: "Tổng quan đội ngũ", resource: "team", icon: UsersRound },
+      { id: "team-probation", label: "Đánh giá thử việc", resource: "probation", icon: FileCheck2 },
       { id: "team-calendar", label: "Lịch đội ngũ", resource: "team-calendar", icon: CalendarDays },
     ],
   },
@@ -83,6 +83,7 @@ const registry: NavGroup[] = [
       { id: "hr-command", label: "Trung tâm HR", resource: "hr-command", icon: HeartPulse },
       { id: "employees", label: "Hồ sơ nhân sự", resource: "employees", icon: UsersRound },
       { id: "onboarding", label: "Onboarding", resource: "onboarding", icon: BriefcaseBusiness },
+      { id: "hr-probation", label: "Thử việc", resource: "probation", icon: FileCheck2 },
       { id: "hr-contracts", label: "Quản lý hợp đồng", resource: "hr-contracts", icon: FileText },
       { id: "organization", label: "Tổ chức", resource: "organization", icon: Network },
       { id: "offboarding", label: "Offboarding", resource: "offboarding", icon: LogOut },
@@ -92,24 +93,23 @@ const registry: NavGroup[] = [
       { id: "timesheets", label: "Bảng công", resource: "timesheets", icon: LayoutList },
       { id: "expense-review", label: "Duyệt chi phí", resource: "expense-review", icon: ReceiptText },
       { id: "reports", label: "Báo cáo", resource: "reports", icon: Gauge },
-      { id: "misa-sync", label: "Đồng bộ MISA", resource: "misa-sync", icon: CircleDollarSign },
+      { id: "misa-sync", label: "CSV công nội bộ", resource: "misa-sync", icon: CircleDollarSign },
       { id: "hr-policies", label: "Chính sách HR", resource: "hr-policies", icon: LibraryBig },
     ],
   },
   {
-    label: "Không gian AI",
+    label: "Làm việc từ xa",
     items: [
       { id: "ai-cv", label: "AI CV Intelligence", resource: "ai-cv", icon: Bot },
       {
         id: "ai-wfh",
-        label: "AI WFH",
+        label: "WFH & báo cáo ngày",
         resource: "ai-wfh",
-        icon: Sparkles,
-        badge: "1",
+        icon: Laptop2,
         children: [
-          { id: "ai-wfh-overview", label: "Tổng quan WFH" },
-          { id: "ai-wfh-session", label: "Phiên làm việc của tôi", badge: "1" },
-          { id: "ai-wfh-history", label: "Lịch sử & đánh giá AI" },
+          { id: "ai-wfh-overview", label: "Đơn & phiên WFH" },
+          { id: "ai-wfh-session", label: "Phiên làm việc của tôi" },
+          { id: "ai-wfh-history", label: "Lịch sử báo cáo" },
         ],
       },
     ],
@@ -134,8 +134,16 @@ const registry: NavGroup[] = [
   },
 ];
 
+// Optional showcase modules remain in the repository, but are not part of the
+// active HRM demo until their data and workflows are connected to the core model.
+export const deferredModules = new Set(["email", "performance", "payslip", "expense-review", "ai-cv", "email-dlp", "notification-config", "catalogs"]);
+
+export function isDeferredModule(id: string) {
+  return deferredModules.has(id);
+}
+
 export function navigationFor(session: EffectiveSession) {
   return registry
-    .map((group) => ({ ...group, items: group.items.filter((item) => can(session, item.resource)) }))
+    .map((group) => ({ ...group, items: group.items.filter((item) => !isDeferredModule(item.id) && can(session, item.resource) && (item.id !== "team-probation" || ["team-lead", "product-lead"].includes(session.id)) && (item.id !== "hr-probation" || ["hr-total", "hr-branch"].includes(session.id))).map((item) => item.id === "notifications" ? { ...item, badge: undefined } : item) }))
     .filter((group) => group.items.length > 0);
 }

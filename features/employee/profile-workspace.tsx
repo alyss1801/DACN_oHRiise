@@ -6,7 +6,6 @@ import {
   BadgeCheck,
   Building2,
   Camera,
-  Clock3,
   Edit3,
   Eye,
   EyeOff,
@@ -16,11 +15,8 @@ import {
   Laptop2,
   Mail,
   MapPin,
-  Monitor,
-  PackageCheck,
   Phone,
   Plus,
-  RefreshCw,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -28,6 +24,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/features/session/session-context";
+import { useHrDemo } from "@/features/hr/hr-demo-context";
+import type { HrAsset, HrAssetHandover } from "@/features/hr/hr-demo-data";
+import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
+import { demoBusinessNow } from "@/lib/demo-clock";
 import {
   FormField,
   StatusPill,
@@ -54,15 +54,6 @@ type ProfileRecord = {
 
 type RecordKind = "education" | "certificate";
 
-type AssignedDevice = {
-  id: string;
-  name: string;
-  category: string;
-  serial: string;
-  issued: string;
-  status: "Đã cấp" | "Đang cấp" | "Đang xử lý";
-  note: string;
-};
 
 const initialEducation: ProfileRecord[] = [
   { id: "edu-1", title: "Đại học Khoa học Tự nhiên TP.HCM", organization: "Cử nhân Công nghệ Thông tin", detail: "Chuyên ngành Đồ họa số", period: "2015 – 2019" },
@@ -74,14 +65,11 @@ const initialCertificates: ProfileRecord[] = [
   { id: "cert-2", title: "Professional Scrum Master I", organization: "Scrum.org", detail: "Credential ID · PSM-982184", period: "03/2024 · Không thời hạn" },
 ];
 
-const initialDevices: AssignedDevice[] = [
-  { id: "IT-0238", name: "MacBook Pro 14-inch", category: "Máy tính làm việc", serial: "C02X•••H7Q6", issued: "04/03/2024", status: "Đã cấp", note: "Thiết bị chính · MDM đang hoạt động" },
-  { id: "IT-0412", name: "LG UltraFine 27-inch", category: "Màn hình", serial: "LG27•••884", issued: "04/03/2024", status: "Đã cấp", note: "Làm việc tại HCM-Q1" },
-  { id: "REQ-1082", name: "YubiKey 5 NFC", category: "Thiết bị bảo mật", serial: "Chờ gán serial", issued: "Dự kiến 10/10/2026", status: "Đang cấp", note: "IT đang chuẩn bị bàn giao" },
-];
-
 export function ProfileWorkspace() {
   const { session, fieldVisibility } = useSession();
+  const { assets, assetHandovers, applyAssetAction } = useHrDemo();
+  const selfId = personaEmployeeIds[session.id];
+  const devices = assets.filter((item) => item.holderId === selfId);
   const [section, setSection] = useState(sections[0]);
   const [editOpen, setEditOpen] = useState(false);
   const [detailsVisible, setDetailsVisible] = useState(true);
@@ -94,11 +82,6 @@ export function ProfileWorkspace() {
   const [certificates, setCertificates] = useState(initialCertificates);
   const [recordEditor, setRecordEditor] = useState<{ kind: RecordKind; item?: ProfileRecord } | null>(null);
   const [recordDraft, setRecordDraft] = useState<Omit<ProfileRecord, "id">>({ title: "", organization: "", detail: "", period: "" });
-  const [devices, setDevices] = useState(initialDevices);
-  const [deviceRequestOpen, setDeviceRequestOpen] = useState(false);
-  const [deviceId, setDeviceId] = useState(initialDevices[0].id);
-  const [deviceRequestType, setDeviceRequestType] = useState("Báo thiết bị hư");
-  const [deviceNote, setDeviceNote] = useState("");
 
   const mask = (field: string, value: string) => {
     if (!detailsVisible) return "••••••••";
@@ -141,15 +124,11 @@ export function ProfileWorkspace() {
     toast.success("Đã xóa mục khỏi hồ sơ.");
   }
 
-  function submitDeviceRequest() {
-    if (!deviceNote.trim()) {
-      toast.error("Vui lòng mô tả tình trạng thiết bị.");
-      return;
-    }
-    setDevices((items) => items.map((item) => item.id === deviceId ? { ...item, status: "Đang xử lý", note: `${deviceRequestType} · IT đã tiếp nhận` } : item));
-    setDeviceRequestOpen(false);
-    setDeviceNote("");
-    toast.success("Yêu cầu thiết bị đã được gửi tới IT.");
+  function acknowledgeDevice(asset: HrAsset) {
+    if (!selfId) return;
+    const result = applyAssetAction({ type: "acknowledge", assetId: asset.id, employeeId: selfId, at: demoBusinessNow().toISOString(), expectedVersion: asset.version ?? 1 });
+    if (!result.ok) { toast.error(result.error); return; }
+    toast.success("Đã xác nhận nhận thiết bị trong dữ liệu demo cục bộ.");
   }
 
   return (
@@ -346,11 +325,11 @@ export function ProfileWorkspace() {
           {section === "Thiết bị" && (
             <div className="profile-devices-section">
               <div className="profile-section-head">
-                <SectionTitle icon={Laptop2} title="Thiết bị được cấp" subtitle="Thiết bị đang sử dụng và các yêu cầu cấp phát đang xử lý." />
-                <button className="secondary-button" onClick={() => setDeviceRequestOpen(true)}><RefreshCw size={15} strokeWidth={1.5} /> Báo hư / đổi thiết bị</button>
+                <SectionTitle icon={Laptop2} title="Thiết bị của tôi" subtitle="Cùng nguồn bàn giao với HR; người nhận xác nhận trước khi tính là đã cấp." />
               </div>
               <div className="profile-device-list">
-                {devices.map((device) => <DeviceRow key={device.id} device={device} onRequest={() => { setDeviceId(device.id); setDeviceRequestOpen(true); }} />)}
+                {devices.map((device) => <DeviceRow key={device.id} device={device} handover={assetHandovers.find((item) => item.assetId === device.id && !item.returnedAt)} onAcknowledge={() => acknowledgeDevice(device)} />)}
+                {!devices.length && <p className="hr-empty">Chưa có thiết bị được bàn giao cho hồ sơ này.</p>}
               </div>
             </div>
           )}
@@ -413,19 +392,6 @@ export function ProfileWorkspace() {
           <FormField label="Chi tiết"><input value={recordDraft.detail} onChange={(event) => setRecordDraft((draft) => ({ ...draft, detail: event.target.value }))} placeholder="Chuyên ngành hoặc mã chứng nhận" /></FormField>
         </div>
       </WorkflowDialog>
-      <WorkflowDialog
-        open={deviceRequestOpen}
-        onOpenChange={setDeviceRequestOpen}
-        title="Báo hư / đổi thiết bị"
-        description="Yêu cầu sẽ được chuyển tới IT và cập nhật trong danh sách cấp phát."
-        footer={<><button className="secondary-button" onClick={() => setDeviceRequestOpen(false)}>Hủy</button><button className="primary-button" onClick={submitDeviceRequest}>Gửi yêu cầu</button></>}
-      >
-        <div className="form-grid">
-          <FormField label="Thiết bị" required><select value={deviceId} onChange={(event) => setDeviceId(event.target.value)}>{devices.map((device) => <option key={device.id} value={device.id}>{device.name} · {device.id}</option>)}</select></FormField>
-          <FormField label="Loại yêu cầu" required><select value={deviceRequestType} onChange={(event) => setDeviceRequestType(event.target.value)}><option>Báo thiết bị hư</option><option>Đổi thiết bị</option><option>Bổ sung phụ kiện</option></select></FormField>
-          <FormField label="Mô tả tình trạng" required><textarea value={deviceNote} onChange={(event) => setDeviceNote(event.target.value)} placeholder="Mô tả lỗi hoặc lý do cần đổi thiết bị..." /></FormField>
-        </div>
-      </WorkflowDialog>
     </div>
   );
 }
@@ -439,9 +405,9 @@ function RecordTimeline({ icon: Icon, title, items, onAdd, onEdit, onRemove }: {
   </article>;
 }
 
-function DeviceRow({ device, onRequest }: { device: AssignedDevice; onRequest: () => void }) {
-  const Icon = device.category === "Màn hình" ? Monitor : device.category === "Thiết bị bảo mật" ? PackageCheck : Laptop2;
-  return <article className="profile-device-row"><span className="device-icon"><Icon size={20} strokeWidth={1.5} /></span><div className="device-copy"><strong>{device.name}</strong><span>{device.category} · <b>{device.id}</b></span><small>{device.note}</small></div><div className="device-meta"><span>Serial</span><strong>{device.serial}</strong><small>{device.issued}</small></div><StatusPill tone={device.status === "Đã cấp" ? "success" : device.status === "Đang xử lý" ? "blue" : "warning"}>{device.status === "Đang cấp" && <Clock3 size={14} strokeWidth={1.5} />}{device.status}</StatusPill><button className="device-row-action" onClick={onRequest} aria-label={`Tạo yêu cầu cho ${device.name}`}><RefreshCw size={14} strokeWidth={1.5} /></button></article>;
+function DeviceRow({ device, handover, onAcknowledge }: { device: HrAsset; handover?: HrAssetHandover; onAcknowledge: () => void }) {
+  const label = device.status === "awaiting_receipt" ? "Chờ bạn xác nhận" : device.status === "awaiting_return" ? "Chờ thu hồi" : "Đang sử dụng";
+  return <article className="profile-device-row"><span className="device-icon"><Laptop2 size={20} strokeWidth={1.5} /></span><div className="device-copy"><strong>{device.name}</strong><span>{device.category} · <b>{device.id}</b></span><small>{handover?.source === "seed" ? "Bản ghi mẫu; chưa có biên bản gốc" : handover ? `${handover.conditionOut} · ${handover.accessories}` : "Chưa có biên bản"}</small></div><div className="device-meta"><span>Serial</span><strong>{device.serial}</strong><small>{device.assignedAt ?? "—"}</small></div><StatusPill tone={device.status === "assigned" ? "success" : "warning"}>{label}</StatusPill>{device.status === "awaiting_receipt" && <button className="secondary-button" onClick={onAcknowledge}>Xác nhận đã nhận</button>}</article>;
 }
 
 function SectionTitle({

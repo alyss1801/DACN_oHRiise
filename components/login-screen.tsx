@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
 import { BrandMark } from "./brand-mark";
@@ -22,7 +22,7 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
   const [loading, setLoading] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [otp, setOtp] = useState("123456");
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: "ha.nguyen@ohriise.vn", password: "demo1234" } });
+  const { control, handleSubmit, formState: { errors } } = useForm<LoginValues>({ resolver: zodResolver(loginSchema), defaultValues: { email: "ha.nguyen@ohriise.vn", password: "demo1234" } });
 
   function submit() {
     setLoading(true);
@@ -83,7 +83,7 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
               <span>Email công ty</span>
               <div className="input-wrap">
                 <Mail size={16} strokeWidth={1.5} />
-                <input type="email" {...register("email")} aria-invalid={Boolean(errors.email)} aria-label="Email công ty" />
+                <Controller name="email" control={control} render={({ field }) => <input type="email" {...field} value={field.value ?? ""} aria-invalid={Boolean(errors.email)} aria-label="Email công ty" />} />
               </div>
               {errors.email && <small className="field-error">{errors.email.message}</small>}
             </label>
@@ -91,7 +91,7 @@ export function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
               <span>Mật khẩu</span>
               <div className="input-wrap">
                 <LockKeyhole size={16} strokeWidth={1.5} />
-                <input type={showPassword ? "text" : "password"} {...register("password")} aria-invalid={Boolean(errors.password)} aria-label="Mật khẩu" />
+                <Controller name="password" control={control} render={({ field }) => <input type={showPassword ? "text" : "password"} {...field} value={field.value ?? ""} aria-invalid={Boolean(errors.password)} aria-label="Mật khẩu" />} />
                 <button type="button" className="input-action" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
                   {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
                 </button>

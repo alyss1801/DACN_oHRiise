@@ -6,6 +6,7 @@ import type {
   PersonaDefinition,
   ScopeType,
 } from "./types";
+import { personaEmployeeIds } from "./demo-identity";
 
 const scopeOrder: ScopeType[] = [
   "self",
@@ -69,13 +70,13 @@ export function fieldVisibility(
 
 export function canAccessScopedRecord(
   session: EffectiveSession,
-  record: { branch?: string; department?: string; team?: string; employeeId?: string },
-  currentEmployeeId = "OH-0248",
+  record: { branch?: string; department?: string; team?: string; employeeId?: string; managerId?: string },
+  currentEmployeeId = personaEmployeeIds[session.id] ?? "",
 ) {
   if (session.effectiveScope === "company") return true;
   if (session.effectiveScope === "branch") return record.branch === session.branch;
   if (session.effectiveScope === "department") return record.department === session.department;
-  if (session.effectiveScope === "team") return record.team === "Data Platform";
+  if (session.effectiveScope === "team") return Boolean(currentEmployeeId) && (record.employeeId === currentEmployeeId || record.managerId === currentEmployeeId || (session.id === "team-lead" && record.team === "TEAM-DP"));
   if (session.effectiveScope === "assigned") return record.employeeId === currentEmployeeId;
-  return record.employeeId === currentEmployeeId;
+  return Boolean(currentEmployeeId) && record.employeeId === currentEmployeeId;
 }
