@@ -1,4 +1,5 @@
 import { demoBusinessDate } from "@/lib/demo-clock";
+import type { ProbationAssessment } from "./probation-template";
 
 export type HrEmployee = {
   id: string; name: string; initials: string; email: string; branch: string; department: string;
@@ -27,13 +28,14 @@ export type HrAttendance = {
 export type HrAttendanceAdjustment = { id: string; attendanceId: string; employeeId: string; at: string; actor: string; resolution: HrAttendance["resolution"]; reason: string; correctionIn?: string; correctionOut?: string; version: number; source: "demo" | "legacy" };
 export type HrAttendanceConfirmation = { id: string; attendanceId: string; employeeId: string; attendanceVersion: number; decision: "confirmed" | "disputed" | "exception"; actorId: string; actor: string; at: string; reason: string };
 export type HrAttendanceExplanation = { id: string; attendanceId: string; employeeId: string; attendanceVersion: number; managerId: string; text: string; submittedAt: string; status: "submitted" | "confirmed" | "rejected"; reviewedAt?: string; reviewReason?: string };
+export type HrShiftAssignment = { id: string; employeeId: string; date: string; shift: string; plannedIn: string; plannedOut: string };
 export type HrActivity = { id: string; at: string; employeeId?: string; branch: string; department: string; actor: string; text: string };
 export type TimesheetSnapshot = { version: number; at: string; actor: string; leaveDates: { employeeId: string; date: string; portion: "full" | "morning" | "afternoon"; branch?: string }[]; wfhDays?: { requestId: string; employeeId: string; branch: string; date: string; checkInAt: string; checkOutAt: string; reportSubmittedAt: string; reviewedAt: string; reviewedBy: string }[]; rows: { attendanceId: string; employeeId: string; branch: string; date: string; effectiveIn: string | null; effectiveOut: string | null; issue: HrAttendance["issue"]; resolution: HrAttendance["resolution"]; confirmation?: "confirmed" | "exception"; confirmedBy?: string; confirmedAt?: string }[] };
 export type TimesheetPeriod = { id: string; status: "reconciling" | "closed" | "exported"; version?: number; snapshots?: TimesheetSnapshot[]; closedAt?: string; closedBy?: string; reopenReason?: string };
 export type HrExport = { id: string; period: string; branch: string; at: string; count: number; status: "partial-demo" | "exported"; errors: number; snapshotVersion?: number };
 export type HrTask = { id: string; label: string; owner: string; deadline: string; doneAt?: string; note?: string };
 export type HrCase = { id: string; employeeId: string; kind: "onboarding" | "offboarding"; startedAt: string; lastWorkingDay?: string; disableAt?: string; sourceType?: "employee-request" | "employer-decision" | "contract-expiry" | "other"; reason?: string; sourceReference?: string; tasks: HrTask[]; completedAt?: string; cancelledAt?: string; cancelReason?: string };
-export type HrProbationReview = { id: string; employeeId: string; managerId: string; dueAt: string; status: "assigned" | "evaluated" | "activated" | "offboarding-required" | "offboarding-started"; version: number; assignedAt: string; assignedBy: string; outcome?: "pass" | "fail"; evidence?: string; evaluatedAt?: string; decidedAt?: string; decidedBy?: string; decisionReason?: string; offboardingCaseId?: string };
+export type HrProbationReview = { id: string; employeeId: string; managerId: string; dueAt: string; status: "assigned" | "evaluated" | "activated" | "offboarding-required" | "offboarding-started"; version: number; assignedAt: string; assignedBy: string; templateId?: string; templateVersion?: number; draft?: ProbationAssessment; assessment?: ProbationAssessment; outcome?: "pass" | "fail"; evidence?: string; evaluatedAt?: string; decidedAt?: string; decidedBy?: string; decisionReason?: string; offboardingCaseId?: string };
 export type HrPolicy = { id: string; group: string; name: string; value: string; scope: string; effectiveAt: string; version: number; status: "draft" | "scheduled" | "active" | "retired"; updatedAt: string };
 export type HrRequisition = { id: string; title: string; department: string; branch: string; status: "open" | "closed"; createdAt: string; criteria: string };
 export type HrCandidate = { id: string; name: string; email: string; requisitionId: string; experience: string; skills: string; cvSummary: string; stage: "new" | "screening" | "interview" | "assessment" | "offer" | "hired" | "rejected"; note: string; updatedAt: string; employeeId?: string };
@@ -43,7 +45,7 @@ export type OrgTransferRow = { employeeId: string; before: { branch: string; dep
 export type OrgChange = { id: string; at: string; effectiveAt: string; actor: string; branch: string; kind: string; entityId: string; summary: string; employeeIds?: string[]; transfers?: OrgTransferRow[]; pendingRequestIds?: string[] };
 export type OrgData = { departments: OrgDepartment[]; teams: OrgTeam[]; changes: OrgChange[] };
 export type HrState = {
-  employees: HrEmployee[]; contracts: HrContract[]; assets: HrAsset[]; assetHandovers: HrAssetHandover[]; attendance: HrAttendance[]; selfPunches: HrSelfPunch[]; attendanceAdjustments: HrAttendanceAdjustment[]; attendanceConfirmations: HrAttendanceConfirmation[]; attendanceExplanations: HrAttendanceExplanation[];
+  employees: HrEmployee[]; contracts: HrContract[]; assets: HrAsset[]; assetHandovers: HrAssetHandover[]; attendance: HrAttendance[]; shiftAssignments: HrShiftAssignment[]; selfPunches: HrSelfPunch[]; attendanceAdjustments: HrAttendanceAdjustment[]; attendanceConfirmations: HrAttendanceConfirmation[]; attendanceExplanations: HrAttendanceExplanation[];
   activities: HrActivity[]; periods: TimesheetPeriod[]; exports: HrExport[];
   leaveAdjustments: Record<string, number>; cases: HrCase[]; probationReviews: HrProbationReview[]; policies: HrPolicy[]; requisitions: HrRequisition[]; candidates: HrCandidate[]; organization: OrgData;
 };
@@ -58,6 +60,8 @@ export const initialHrState: HrState = {
     { id: "OH-0204", name: "Lê Hoàng Đức", initials: "LĐ", email: "duc.le@ohriise.vn", branch: "HN-CG", department: "Kinh doanh", position: "Sales Executive", employmentType: "Toàn thời gian", startDate: "2023-11-06", status: "active", phone: "090 000 0204", address: "Hà Nội" },
     { id: "OH-0137", name: "Phạm Thanh Long", initials: "PL", email: "long.pham@ohriise.vn", branch: "HN-CG", department: "Kinh doanh", position: "Sales Executive", employmentType: "Toàn thời gian", startDate: "2022-08-01", status: "active", phone: "090 000 0137", address: "Hà Nội" },
     { id: "OH-0218", name: "Phạm Gia Bảo", initials: "GB", email: "bao.pham@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Software Engineer", managerId: "OH-0259", primaryTeamId: "TEAM-PE", employmentType: "Toàn thời gian", startDate: "2026-10-01", status: "probation", phone: "090 000 0218", address: "TP. Hồ Chí Minh" },
+    { id: "OH-0301", name: "Trần Minh Anh", initials: "MA", email: "anh.tran@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Data Engineer", managerId: "OH-0259", primaryTeamId: "TEAM-DP", employmentType: "Toàn thời gian", startDate: "2026-10-06", status: "probation", phone: "090 000 0301", address: "TP. Hồ Chí Minh" },
+    { id: "OH-0302", name: "Ngô Khánh Linh", initials: "KL", email: "linh.ngo@ohriise.vn", branch: "HCM-TD", department: "Công nghệ thông tin", position: "Data Analyst", managerId: "OH-0259", primaryTeamId: "TEAM-DP", employmentType: "Toàn thời gian", startDate: "2025-07-14", status: "active", phone: "090 000 0302", address: "TP. Hồ Chí Minh" },
   ],
   organization: {
     departments: [
@@ -68,7 +72,7 @@ export const initialHrState: HrState = {
     ],
     teams: [
       { id: "TEAM-HR", code: "HR-OPS", name: "HR Operations", type: "functional", departmentId: "DEPT-HR", leadId: "OH-0091", memberIds: ["OH-0091", "OH-0266"], description: "Điều phối vận hành nhân sự.", startsAt: "2025-01-01", status: "active" },
-      { id: "TEAM-DP", code: "DATA-PLAT", name: "Data Platform", type: "functional", departmentId: "DEPT-IT", leadId: "OH-0259", memberIds: ["OH-0259", "OH-0271"], description: "Dữ liệu và nền tảng phân tích.", startsAt: "2025-01-01", status: "active" },
+      { id: "TEAM-DP", code: "DATA-PLAT", name: "Data Platform", type: "functional", departmentId: "DEPT-IT", leadId: "OH-0259", memberIds: ["OH-0259", "OH-0271", "OH-0301", "OH-0302"], description: "Dữ liệu và nền tảng phân tích.", startsAt: "2025-01-01", status: "active" },
       { id: "TEAM-PE", code: "PROD-ENG", name: "Product Engineering", type: "project", departmentId: "DEPT-IT", memberIds: ["OH-0218"], description: "Phát triển tính năng sản phẩm.", startsAt: "2026-10-01", status: "active" },
     ],
     changes: [],
@@ -92,6 +96,7 @@ export const initialHrState: HrState = {
     { id: "handover-seed-307", assetId: "IT-0307", employeeId: "OH-0137", issuedAt: "2024-02-08T09:00:00+07:00", issuedBy: "fixture", conditionOut: "Cần kiểm tra", accessories: "Không ghi trong dữ liệu mẫu", evidence: "Bản ghi mẫu; chưa có biên bản gốc", acknowledgedAt: "2024-02-08T09:00:00+07:00", source: "seed" },
   ],
   attendance: seedAttendance(),
+  shiftAssignments: seedShifts(),
   selfPunches: [],
   attendanceAdjustments: [],
   attendanceConfirmations: [],
@@ -118,7 +123,7 @@ export const initialHrState: HrState = {
       { id: "account", label: "Phối hợp khóa tài khoản", owner: "System Admin", deadline: "2026-10-31" },
     ] },
   ],
-  probationReviews: [],
+  probationReviews: [{ id: "PR-2026-0218", employeeId: "OH-0218", managerId: "OH-0259", dueAt: "2026-10-30", status: "assigned", version: 1, assignedAt: "2026-10-19T03:00:00.000Z", assignedBy: "Nguyễn Thanh Lan", templateId: "technology", templateVersion: 1 }],
   policies: [
     { id: "POL-ATT-01", group: "Chấm công", name: "Ngưỡng đi trễ (phút)", value: "15", scope: "Toàn công ty", effectiveAt: "2026-11-01", version: 2, status: "scheduled", updatedAt: "2026-10-10" },
     { id: "POL-ATT-02", group: "Chấm công", name: "Phương thức hợp lệ", value: "QR, GPS, WFH", scope: "Toàn công ty", effectiveAt: "2026-11-01", version: 1, status: "scheduled", updatedAt: "2026-10-10" },
@@ -141,7 +146,7 @@ export const initialHrState: HrState = {
 };
 
 function seedAttendance(): HrAttendance[] {
-  const people = ["OH-0091", "OH-0184", "OH-0248", "OH-0259", "OH-0271", "OH-0266", "OH-0204", "OH-0218"];
+  const people = ["OH-0091", "OH-0184", "OH-0248", "OH-0259", "OH-0271", "OH-0266", "OH-0204", "OH-0218", "OH-0301", "OH-0302"];
   const rows: HrAttendance[] = [];
   for (let index = 1; index <= 50; index += 1) {
     const month = index <= 30 ? "09" : "10";
@@ -151,7 +156,9 @@ function seedAttendance(): HrAttendance[] {
     if (weekday === 0 || weekday === 6) continue;
     for (const employeeId of people) {
       if (employeeId === "OH-0218" && month === "09") continue; // Joined in October.
+      if (employeeId === "OH-0301" && (month === "09" || month === "10" && day < 6)) continue;
       if (employeeId === "OH-0271" && month === "10" && day === 20) continue; // Approved leave in the shared request store.
+      if (employeeId === "OH-0302" && month === "10" && day === 20) continue; // Approved WFH in the shared request store.
       const exception = month === "10" && day === 20 ? ({ "OH-0184": "missing-out", "OH-0218": "missing-in", "OH-0266": "late", "OH-0204": "outside-gps" } as Record<string, HrAttendance["issue"]>)[employeeId] : month === "09" && day === 30 && ["OH-0266", "OH-0248"].includes(employeeId) ? "missing-out" : month === "09" && day === 29 && employeeId === "OH-0248" ? "late" : undefined;
       const issue = exception ?? "none";
       const events: AttendanceEvent[] = issue === "missing-in" ? [{ kind: "check-out", at: "17:32", method: "QR" }] : [
@@ -160,6 +167,18 @@ function seedAttendance(): HrAttendance[] {
       ];
       rows.push({ id: `${employeeId}-${date}`, employeeId, date, shift: "Hành chính", plannedIn: "08:30", plannedOut: "17:30", events, issue, resolution: issue === "none" ? "approved" : "open" });
     }
+  }
+  return rows;
+}
+
+function seedShifts(): HrShiftAssignment[] {
+  const people = ["OH-0248", "OH-0271", "OH-0218", "OH-0301", "OH-0302"];
+  const rows: HrShiftAssignment[] = [];
+  for (let day = 19; day <= 30; day += 1) {
+    const date = `2026-10-${day}`;
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    if (weekday === 0 || weekday === 6) continue;
+    for (const employeeId of people) rows.push({ id: `SHIFT-${employeeId}-${date}`, employeeId, date, shift: "Hành chính", plannedIn: "08:30", plannedOut: "17:30" });
   }
   return rows;
 }

@@ -26,6 +26,9 @@ export type BusinessRequest = {
   correctionIn?: string;
   correctionOut?: string;
   overtimeHours?: number;
+  shiftStart?: string;
+  shiftEnd?: string;
+  shiftAssignmentId?: string;
 };
 
 export type DemoAccount = {
@@ -68,6 +71,11 @@ export type AuditEvent = {
 };
 
 const initialRequests: BusinessRequest[] = [
+  { id: "WFH-2026-302", type: "WFH", employeeId: "OH-0302", employee: "Ngô Khánh Linh", initials: "KL", submitted: "18/10/2026", detail: "Cả ngày · Hoàn thiện báo cáo phân tích", date: "2026-10-20", status: "approved", approverId: "OH-0259", approverName: "Bùi Thanh Tâm", wfhPolicyVersion: 1 },
+  { id: "WFH-2026-271", type: "WFH", employeeId: "OH-0271", employee: "Lê Hoàng Vy", initials: "LV", submitted: "19/10/2026", detail: "Cả ngày · Phân tích dữ liệu từ xa", date: "2026-10-22", status: "pending", approverId: "OH-0259", approverName: "Bùi Thanh Tâm", wfhPolicyVersion: 1 },
+  { id: "ATT-2026-218", type: "Điều chỉnh chấm công", employeeId: "OH-0218", employee: "Phạm Gia Bảo", initials: "GB", submitted: "20/10/2026", detail: "Bổ sung check-in · Có bản ghi check-out", date: "2026-10-20", status: "pending", approverId: "OH-0259", approverName: "Bùi Thanh Tâm", attendanceId: "OH-0218-2026-10-20", attendanceVersion: 1, correctionIn: "08:31" },
+  { id: "OT-2026-302", type: "Đăng ký OT", employeeId: "OH-0302", employee: "Ngô Khánh Linh", initials: "KL", submitted: "19/10/2026", detail: "2 giờ · Đối soát dữ liệu cuối kỳ", date: "2026-10-21", status: "pending", approverId: "OH-0259", approverName: "Bùi Thanh Tâm", overtimeHours: 2 },
+  { id: "SWAP-2026-302", type: "Đổi ca", employeeId: "OH-0302", employee: "Ngô Khánh Linh", initials: "KL", submitted: "19/10/2026", detail: "Ca 10:00–19:00 · Họp dự án buổi tối", date: "2026-10-23", status: "pending", approverId: "OH-0259", approverName: "Bùi Thanh Tâm", shiftStart: "10:00", shiftEnd: "19:00", shiftAssignmentId: "SHIFT-OH-0302-2026-10-23" },
   { id: "WFH-2026-092", type: "WFH", employeeId: "OH-0248", employee: "Nguyễn Thu Hà", initials: "NH", submitted: "02/10/2026", detail: "Cả ngày · Tập trung hoàn thiện design system", date: "2026-10-02", status: "approved", approverId: "OH-0184", approverName: "Trần Minh Quân", wfhPolicyVersion: 1 },
   { id: "WFH-2026-087", type: "WFH", employeeId: "OH-0248", employee: "Nguyễn Thu Hà", initials: "NH", submitted: "25/09/2026", detail: "Cả ngày · Làm việc tại nhà theo lịch nhóm", date: "2026-09-25", status: "approved", approverId: "OH-0184", approverName: "Trần Minh Quân", wfhPolicyVersion: 1 },
   { id: "WFH-2026-104", type: "WFH", employeeId: "OH-0259", employee: "Bùi Thanh Tâm", initials: "BT", submitted: "12 phút trước", detail: "Hoàn thiện ETL mapping và review PR #184", date: "2026-10-09", status: "pending" },
@@ -139,7 +147,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
   const [wfhReportStatus, setWfhReportStatus] = useState<WfhReportStatus>("required");
   const [requests, setRequests] = useState<BusinessRequest[]>(() => {
     if (typeof window === "undefined") return initialRequests;
-    try { const stored = window.localStorage.getItem("ohriise-business-requests-v1"); if (stored) { const parsed: BusinessRequest[] = JSON.parse(stored); if (Array.isArray(parsed)) return parsed.map(normalizeLegacyWfh); } } catch { /* Ignore an invalid old snapshot. */ }
+    try { const stored = window.localStorage.getItem("ohriise-business-requests-v1"); if (stored) { const parsed: BusinessRequest[] = JSON.parse(stored); if (Array.isArray(parsed)) return [...parsed.map(normalizeLegacyWfh), ...initialRequests.filter((item) => ["WFH-2026-302", "WFH-2026-271", "ATT-2026-218", "OT-2026-302", "SWAP-2026-302"].includes(item.id) && !parsed.some((saved) => saved.id === item.id))]; } } catch { /* Ignore an invalid old snapshot. */ }
     return initialRequests;
   });
   const requestsRef = useRef(requests);
@@ -191,6 +199,7 @@ export function DemoDataProvider({ children }: { children: React.ReactNode }) {
   function decideBusinessRequest(id: string, status: "approved" | "rejected", note?: string, actor = "Trần Minh Quân · Team Lead", actorId?: string) {
     const target = requestsRef.current.find((request) => request.id === id);
     if (!target || target.status !== "pending" || !actorId || target.approverId !== actorId || target.employeeId === actorId) return false;
+    if (target.type === "Đổi ca" && status === "approved" && (!target.shiftAssignmentId || !/^\d{2}:\d{2}$/.test(target.shiftStart ?? "") || !/^\d{2}:\d{2}$/.test(target.shiftEnd ?? "") || (target.shiftStart ?? "") >= (target.shiftEnd ?? "") || requestsRef.current.some((item) => item.id !== id && item.type === "Đổi ca" && item.employeeId === target.employeeId && item.date === target.date && item.status === "approved"))) return false;
     const nextStatus: BusinessRequestStatus = target.type === "Điều chỉnh chấm công" && status === "approved" ? "hr-review" : status;
     const next = requestsRef.current.map((request) => request.id === id ? { ...request, status: nextStatus, note } : request);
     requestsRef.current = next;

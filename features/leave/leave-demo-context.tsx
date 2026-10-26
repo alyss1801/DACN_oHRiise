@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { effectiveLeaveEntitlement, emptyLeaveStore, submitLeave, transitionLeave } from "./leave-model";
+import { effectiveLeaveEntitlement, initialLeaveStore, submitLeave, transitionLeave } from "./leave-model";
 import type { LeavePortion, LeaveResult, LeaveStore, LeaveType } from "./leave-model";
 import { demoBusinessDate, demoBusinessNow } from "@/lib/demo-clock";
 import { useHrDemo } from "@/features/hr/hr-demo-context";
@@ -12,17 +12,17 @@ type LeaveContextValue = { store: LeaveStore; submit: (input: SubmitInput) => Le
 const LeaveContext = createContext<LeaveContextValue | null>(null);
 
 function readStore(): LeaveStore {
-  if (typeof window === "undefined") return emptyLeaveStore;
+  if (typeof window === "undefined") return initialLeaveStore;
   try {
     const parsed = JSON.parse(window.localStorage.getItem(key) ?? "null") as LeaveStore | null;
-    if (parsed?.version === 1 && Array.isArray(parsed.requests)) return parsed;
+    if (parsed?.version === 1 && Array.isArray(parsed.requests)) return { ...parsed, requests: [...parsed.requests, ...initialLeaveStore.requests.filter((seed) => !parsed.requests.some((item) => item.id === seed.id))] };
   } catch { /* Ignore invalid local demo data. */ }
-  return emptyLeaveStore;
+  return initialLeaveStore;
 }
 
 export function LeaveDemoProvider({ children }: { children: React.ReactNode }) {
   const { policies } = useHrDemo();
-  const [store, setStore] = useState<LeaveStore>(emptyLeaveStore);
+  const [store, setStore] = useState<LeaveStore>(initialLeaveStore);
   const [hydrated, setHydrated] = useState(false);
   const current = useRef(store);
   useEffect(() => {
@@ -56,7 +56,7 @@ export function LeaveDemoProvider({ children }: { children: React.ReactNode }) {
       return commit(submitLeave(current.current, { ...request, id: `LV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` }, demoBusinessNow().toISOString(), adjustment, demoBusinessDate(), policy));
     },
     act: (id, actorId, action, note) => commit(transitionLeave(current.current, id, actorId, action, note, demoBusinessNow().toISOString())),
-    resetLeaveDemo: () => { current.current = emptyLeaveStore; setStore(emptyLeaveStore); },
+    resetLeaveDemo: () => { current.current = initialLeaveStore; setStore(initialLeaveStore); },
   };
   return <LeaveContext.Provider value={value}>{children}</LeaveContext.Provider>;
 }

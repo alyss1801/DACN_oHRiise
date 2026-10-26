@@ -44,7 +44,7 @@ type CenterFolder = "todo" | "done" | "cc" | "sent";
 type RequestCategory = "all" | "attendance" | "finance" | "timeoff";
 
 type RequestTemplate = {
-  id: "adjustment" | "overtime" | "expense" | "wfh" | "leave";
+  id: "adjustment" | "overtime" | "expense" | "wfh" | "leave" | "swap";
   label: string;
   shortLabel: string;
   description: string;
@@ -61,15 +61,16 @@ const requestTemplates: RequestTemplate[] = [
   { id: "expense", label: "Xin chi tiền", shortLabel: "Kinh phí", description: "Đề nghị duyệt kinh phí hoặc hoàn ứng", category: "finance", type: "Chi phí", prefix: "EXP-2026", icon: Banknote, tone: "pink" },
   { id: "wfh", label: "Đơn WFH", shortLabel: "Remote", description: "Đăng ký làm việc từ xa", category: "timeoff", type: "WFH", prefix: "WFH-2026", icon: Laptop2, tone: "cyan" },
   { id: "leave", label: "Đơn nghỉ phép", shortLabel: "Nghỉ phép", description: "Phép năm, nghỉ bệnh hoặc nghỉ khác", category: "timeoff", type: "Nghỉ phép", prefix: "LV-2026", icon: CalendarDays, tone: "blue" },
+  { id: "swap", label: "Đổi giờ ca", shortLabel: "Đổi ca", description: "Đề nghị đổi giờ ca đã phân công", category: "attendance", type: "Đổi ca", prefix: "SWAP-2026", icon: CalendarDays, tone: "blue" },
 ];
 
 // Leave has its own ID-based workflow; do not mix legacy free-text leave rows into this inbox.
-const activeTemplates = requestTemplates.filter((item) => ["adjustment", "overtime", "wfh", "leave"].includes(item.id));
+const activeTemplates = requestTemplates.filter((item) => ["adjustment", "overtime", "wfh", "leave", "swap"].includes(item.id));
 const supportedTypes = activeTemplates.filter((item) => item.id !== "leave").map((item) => item.type);
 
-export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { initialTemplate?: string; onNavigate?: (id: string) => void }) {
+export function ApprovalMiniappWorkspace({ initialTemplate, initialRequestId, onNavigate }: { initialTemplate?: string; initialRequestId?: string; onNavigate?: (id: string) => void }) {
   const { session } = useSession();
-  const { employees, attendance, periods, policies } = useHrDemo();
+  const { employees, attendance, shiftAssignments, periods, policies } = useHrDemo();
   const { store: leaveStore } = useLeaveDemo();
   const { requests, addBusinessRequest, decideBusinessRequest } = useDemoData();
   const canApprove = can(session, "approvals", "approve");
@@ -85,8 +86,8 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
   );
   const pendingCount = approvalRequests.filter((item) => item.status === "pending" && canApprove && item.approverId === selfId).length;
 
-  const [view, setView] = useState<ApprovalView>("create");
-  const [folder, setFolder] = useState<CenterFolder>(canApprove ? "todo" : "sent");
+  const [view, setView] = useState<ApprovalView>(initialTemplate === "inbox" ? "center" : "create");
+  const [folder, setFolder] = useState<CenterFolder>(initialRequestId && requests.find((item) => item.id === initialRequestId)?.status !== "pending" ? "done" : canApprove ? "todo" : "sent");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<RequestCategory>("all");
   const [template, setTemplate] = useState<RequestTemplate | null>(activeTemplates.find((item) => item.id === initialTemplate) ?? null);
@@ -95,12 +96,15 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
   const [requestOption, setRequestOption] = useState("Cả ngày");
   const [correctionIn, setCorrectionIn] = useState("");
   const [correctionOut, setCorrectionOut] = useState("");
+  const [shiftStart, setShiftStart] = useState("");
+  const [shiftEnd, setShiftEnd] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedId, setSelectedId] = useState(approvalRequests[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState(initialRequestId ?? approvalRequests[0]?.id ?? "");
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [decisionNote, setDecisionNote] = useState("");
   const quota = me ? wfhMonthlyQuota(policies, requestDate) : null;
   const attendanceRow = attendance.find((item) => item.employeeId === selfId && item.date === requestDate);
+  const assignedShift = shiftAssignments.find((item) => item.employeeId === selfId && item.date === requestDate);
   const usedQuota = me ? requests.filter((item) => item.type === "WFH" && item.employeeId === me.id && item.date.startsWith(requestDate.slice(0, 7)) && item.status !== "rejected").length : 0;
 
   const visibleTemplates = activeTemplates.filter((item) => (
@@ -117,6 +121,7 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
     setRequestDetail("");
     setRequestOption(item.id === "adjustment" ? "Thiếu check-out" : item.id === "overtime" ? "2 giờ" : item.id === "leave" ? "Phép năm" : "Cả ngày");
     setCorrectionIn(""); setCorrectionOut("");
+    setShiftStart(""); setShiftEnd("");
     setAmount("");
   }
 
@@ -129,6 +134,13 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
     if (plan && !plan.ok) { toast.error(plan.error); return; }
     const attendancePlan = template.id === "adjustment" || template.id === "overtime" ? validateAttendanceRequest({ type: template.type as "Điều chỉnh chấm công" | "Đăng ký OT", employee: me, date: requestDate, today: demoBusinessDate(), attendance, periods, requests, correctionIn, correctionOut, overtimeHours: Number.parseInt(requestOption, 10) }) : null;
     if (attendancePlan && !attendancePlan.ok) { toast.error(attendancePlan.error); return; }
+    const assignment = shiftAssignments.find((item) => item.employeeId === me.id && item.date === requestDate);
+    if (template.id === "swap") {
+      const manager = employees.find((item) => item.id === me.managerId && item.status !== "inactive");
+      if (!manager || !assignment) { toast.error("Cần có ca đã phân công và quản lý trực tiếp."); return; }
+      if (!/^\d{2}:\d{2}$/.test(shiftStart) || !/^\d{2}:\d{2}$/.test(shiftEnd) || shiftStart >= shiftEnd || shiftStart === assignment.plannedIn && shiftEnd === assignment.plannedOut) { toast.error("Chọn giờ ca mới hợp lệ và khác ca hiện tại."); return; }
+      if (requests.some((item) => item.type === "Đổi ca" && item.employeeId === me.id && item.date === requestDate && item.status !== "rejected") || leaveStore.requests.some((item) => item.employeeId === me.id && item.from <= requestDate && item.to >= requestDate && ["approved", "cancellation-pending"].includes(item.status)) || requests.some((item) => item.type === "WFH" && item.employeeId === me.id && item.date === requestDate && item.status === "approved")) { toast.error("Ngày này đã có yêu cầu đổi ca hoặc lịch nghỉ/WFH đã duyệt."); return; }
+    }
     if (requestDetail.trim().length < 5) {
       toast.error("Vui lòng nhập nội dung yêu cầu rõ ràng hơn.");
       return;
@@ -141,6 +153,7 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
     const detail = template.id === "expense"
       ? `${requestDetail.trim()} · ${amount} ₫`
       : template.id === "adjustment" ? `${attendanceRow?.issue === "missing-in" ? "Thiếu check-in" : attendanceRow?.issue === "missing-out" ? "Thiếu check-out" : "Sai thời gian"} · ${requestDetail.trim()}`
+      : template.id === "swap" ? `Ca ${shiftStart}–${shiftEnd} · ${requestDetail.trim()}`
       : `${requestOption} · ${requestDetail.trim()}`;
     const id = addBusinessRequest({
       idPrefix: template.prefix,
@@ -152,6 +165,7 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
       detail,
       ...(plan?.ok ? { approverId: plan.approverId, approverName: employees.find((item) => item.id === plan.approverId)?.name, wfhPolicyVersion: plan.policyVersion } : {}),
       ...(attendancePlan?.ok ? { approverId: attendancePlan.managerId, approverName: employees.find((item) => item.id === attendancePlan.managerId)?.name, ...(template.id === "adjustment" ? { attendanceId: attendancePlan.row?.id, attendanceVersion: attendancePlan.row?.version ?? 1, correctionIn: correctionIn || undefined, correctionOut: correctionOut || undefined } : { overtimeHours: Number.parseInt(requestOption, 10) }) } : {}),
+      ...(template.id === "swap" && assignment ? { approverId: me.managerId, approverName: employees.find((item) => item.id === me.managerId)?.name, shiftStart, shiftEnd, shiftAssignmentId: assignment.id } : {}),
     });
     setTemplate(null);
     setSelectedId(id);
@@ -164,6 +178,7 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
     if (!selected || !decision) return;
     if (!canApprove || selected.approverId !== selfId || selected.employeeId === selfId) { toast.error("Chỉ quản lý trực tiếp được giao mới có thể xử lý đơn này."); return; }
     if (selected.type === "Điều chỉnh chấm công" && decision === "approve" && (!selected.attendanceId || attendance.find((item) => item.id === selected.attendanceId && item.employeeId === selected.employeeId && item.resolution !== "approved" && item.resolution !== "rejected" && (item.version ?? 1) === selected.attendanceVersion) === undefined)) { toast.error("Bản công đã thay đổi; HR cần xem lại trước khi duyệt đơn cũ."); return; }
+    if (selected.type === "Đổi ca" && decision === "approve" && (!selected.shiftAssignmentId || !shiftAssignments.some((item) => item.id === selected.shiftAssignmentId && item.employeeId === selected.employeeId && item.date === selected.date) || leaveStore.requests.some((item) => item.employeeId === selected.employeeId && item.from <= selected.date && item.to >= selected.date && ["approved", "cancellation-pending"].includes(item.status)) || requests.some((item) => item.type === "WFH" && item.employeeId === selected.employeeId && item.date === selected.date && item.status === "approved"))) { toast.error("Lịch phân ca đã thay đổi hoặc ngày này đã có nghỉ/WFH."); return; }
     if (decision !== "approve" && decisionNote.trim().length < 8) {
       toast.error("Cần nhập nội dung ít nhất 8 ký tự.");
       return;
@@ -229,13 +244,14 @@ export function ApprovalMiniappWorkspace({ initialTemplate, onNavigate }: { init
           {template?.id === "expense" ? (
             <FormField label="Số tiền đề nghị" required><input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="4.850.000" /></FormField>
           ) : (
-            <FormField label={template?.id === "adjustment" ? "Loại điều chỉnh" : template?.id === "overtime" ? "Thời lượng OT" : template?.id === "leave" ? "Loại nghỉ" : "Thời lượng"} required>
-              {template?.id === "adjustment" ? <input readOnly value={attendanceRow ? attendanceRow.issue === "missing-in" ? "Thiếu check-in" : attendanceRow.issue === "missing-out" ? "Thiếu check-out" : "Sai thời gian" : "Chọn ngày có ngoại lệ"} /> : <select value={requestOption} onChange={(event) => setRequestOption(event.target.value)}>{template?.id === "overtime" ? <><option>1 giờ</option><option>2 giờ</option><option>3 giờ</option><option>4 giờ</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <option>Cả ngày</option>}</select>}
+            <FormField label={template?.id === "adjustment" ? "Loại điều chỉnh" : template?.id === "swap" ? "Ca hiện tại" : template?.id === "overtime" ? "Thời lượng OT" : template?.id === "leave" ? "Loại nghỉ" : "Thời lượng"} required>
+              {template?.id === "adjustment" ? <input readOnly value={attendanceRow ? attendanceRow.issue === "missing-in" ? "Thiếu check-in" : attendanceRow.issue === "missing-out" ? "Thiếu check-out" : "Sai thời gian" : "Chọn ngày có ngoại lệ"} /> : template?.id === "swap" ? <input readOnly value={assignedShift ? `${assignedShift.plannedIn}–${assignedShift.plannedOut}` : "Chưa phân ca"} /> : <select value={requestOption} onChange={(event) => setRequestOption(event.target.value)}>{template?.id === "overtime" ? <><option>1 giờ</option><option>2 giờ</option><option>3 giờ</option><option>4 giờ</option></> : template?.id === "leave" ? <><option>Phép năm</option><option>Nghỉ bệnh</option><option>Nghỉ không lương</option></> : <option>Cả ngày</option>}</select>}
             </FormField>
           )}
         </div>
         {template?.id === "wfh" && <p className="muted">Quỹ tháng {requestDate.slice(0, 7)}: {usedQuota}/{quota?.days ?? "—"} ngày đã dùng hoặc đang chờ · mỗi đơn một ngày · chính sách v{quota?.version ?? "—"}.</p>}
         {template?.id === "adjustment" && <><p className="muted">{attendanceRow ? `${attendanceRow.id} · gốc ${attendanceRow.events.find((item) => item.kind === "check-in")?.at ?? "—"}–${attendanceRow.events.find((item) => item.kind === "check-out")?.at ?? "—"} · ${attendanceRow.issue}` : "Chọn ngày có bản ghi công bất thường của bạn trong kỳ đang đối soát."} Bản gốc không bị sửa.</p><div className="form-grid two-cols"><FormField label="Giờ vào đề nghị"><input type="time" value={correctionIn} onChange={(event) => setCorrectionIn(event.target.value)} /></FormField><FormField label="Giờ ra đề nghị"><input type="time" value={correctionOut} onChange={(event) => setCorrectionOut(event.target.value)} /></FormField></div></>}
+        {template?.id === "swap" && <div className="form-grid two-cols"><FormField label="Giờ bắt đầu mới" required><input type="time" value={shiftStart} onChange={(event) => setShiftStart(event.target.value)} /></FormField><FormField label="Giờ kết thúc mới" required><input type="time" value={shiftEnd} onChange={(event) => setShiftEnd(event.target.value)} /></FormField></div>}
         {template?.id === "overtime" && <p className="muted">OT được duyệt chỉ là kế hoạch 1–4 giờ. Chưa tự tính bảng công, phép bù hoặc lương.</p>}
         <div className="dialog-field-gap">
           <FormField label={template?.id === "expense" ? "Mục đích chi" : template?.id === "wfh" ? "Kế hoạch công việc" : template?.id === "overtime" ? "Công việc dự kiến" : "Nội dung / lý do"} required>

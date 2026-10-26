@@ -11,6 +11,10 @@ export type LeaveRequest = {
 export type LeaveStore = { version: 1; requests: LeaveRequest[] };
 export type LeaveResult = { ok: true; store: LeaveStore; request: LeaveRequest } | { ok: false; error: string };
 export const emptyLeaveStore: LeaveStore = { version: 1, requests: [] };
+export const initialLeaveStore: LeaveStore = { version: 1, requests: [
+  { id: "LV-2026-201", employeeId: "OH-0271", managerId: "OH-0259", hrReviewerId: "OH-0091", type: "annual", from: "2026-10-20", to: "2026-10-20", portion: "full", days: 1, reason: "Nghỉ phép cá nhân", handover: "Ngô Khánh Linh", status: "approved", submittedAt: "2026-10-16T03:00:00.000Z", policyVersion: 1, entitlementAtSubmit: 12, events: [{ at: "2026-10-16T03:00:00.000Z", actorId: "OH-0271", action: "submit", note: "Nghỉ phép cá nhân" }, { at: "2026-10-17T03:00:00.000Z", actorId: "OH-0259", action: "approve", note: "Đã sắp xếp bàn giao" }, { at: "2026-10-18T03:00:00.000Z", actorId: "OH-0091", action: "approve", note: "Đã duyệt" }] },
+  { id: "LV-2026-202", employeeId: "OH-0301", managerId: "OH-0259", hrReviewerId: "OH-0091", type: "annual", from: "2026-10-22", to: "2026-10-22", portion: "full", days: 1, reason: "Việc gia đình cần xử lý", handover: "Ngô Khánh Linh", status: "manager-pending", submittedAt: "2026-10-19T03:00:00.000Z", policyVersion: 1, entitlementAtSubmit: 12, events: [{ at: "2026-10-19T03:00:00.000Z", actorId: "OH-0301", action: "submit", note: "Việc gia đình cần xử lý" }] },
+] };
 
 export function effectiveLeaveEntitlement(policies: HrPolicy[], date: string) {
   const policy = policies.filter((item) => item.group === "Nghỉ phép" && item.name === "Phép năm được cấp" && ["active", "scheduled", "retired"].includes(item.status) && item.effectiveAt <= date)

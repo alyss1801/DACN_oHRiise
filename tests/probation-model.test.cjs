@@ -5,10 +5,11 @@ const Module = require("node:module");
 const test = require("node:test");
 const ts = require("typescript");
 Module._extensions[".ts"] = function loadTs(module, filename) { module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename); };
-const { assignProbationReview, evaluateProbationReview, decideProbationReview } = require("../features/hr/probation-model.ts");
+const { assignProbationReview, saveProbationDraft, evaluateProbationReview, decideProbationReview } = require("../features/hr/probation-model.ts");
 
 const start = () => ({ employees: [{ id: "OH-1", status: "probation", managerId: "OH-2" }, { id: "OH-2", status: "active" }, { id: "OH-3", status: "active" }], probationReviews: [], contracts: [], cases: [] });
 const assignment = { employeeId: "OH-1", dueAt: "2026-11-30", actorId: "OH-3", actor: "HR Lan", at: "2026-10-20T02:00:00Z", businessDate: "2026-10-20" };
+const assessment = { outcome: "pass", scores: ["delivery", "quality", "collaboration", "ownership"].map((id) => ({ id, score: 4, comment: "Đạt mục tiêu và có bằng chứng" })), evidence: "Đã hoàn thành mục tiêu thử việc.", updatedAt: "2026-10-21T02:00:00Z" };
 
 test("HR assigns a single probation review to the direct manager", () => {
   const result = assignProbationReview(start(), assignment);
@@ -23,7 +24,7 @@ test("HR assigns a single probation review to the direct manager", () => {
 
 test("manager submits evidence once; HR needs completed onboarding and active verified contract", () => {
   const assigned = assignProbationReview(start(), assignment);
-  const input = { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "pass", evidence: "Đã hoàn thành mục tiêu thử việc.", at: "2026-10-21T02:00:00Z" };
+  const input = { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "pass", evidence: assessment.evidence, assessment, at: "2026-10-21T02:00:00Z" };
   assert.equal(evaluateProbationReview(assigned.state, { ...input, actorId: "OH-3" }).ok, false);
   const evaluated = evaluateProbationReview(assigned.state, input);
   assert.equal(evaluated.ok, true);
@@ -40,9 +41,21 @@ test("manager submits evidence once; HR needs completed onboarding and active ve
 
 test("not continuing probation records a decision without silently ending employment", () => {
   const assigned = assignProbationReview(start(), assignment);
-  const evaluated = evaluateProbationReview(assigned.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "fail", evidence: "Chưa đạt mục tiêu công việc.", at: "2026-10-21T02:00:00Z" });
+  const evaluated = evaluateProbationReview(assigned.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "fail", evidence: "Chưa đạt mục tiêu công việc.", assessment: { ...assessment, outcome: "fail", evidence: "Chưa đạt mục tiêu công việc." }, at: "2026-10-21T02:00:00Z" });
   const decided = decideProbationReview(evaluated.state, { reviewId: assigned.review.id, expectedVersion: 2, actorId: "OH-3", actor: "HR Lan", decision: "offboard", reason: "Không tiếp tục sau thử việc", at: "2026-10-22T02:00:00Z", businessDate: "2026-10-22" });
   assert.equal(decided.ok, true);
   assert.equal(decided.review.status, "offboarding-required");
   assert.equal(decided.state.employees[0].status, "probation");
+});
+
+test("draft stays in shared review and incomplete or stale submissions fail", () => {
+  const assigned = assignProbationReview(start(), assignment);
+  const invalid = { ...assessment, scores: assessment.scores.slice(1) };
+  assert.equal(evaluateProbationReview(assigned.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "pass", evidence: assessment.evidence, assessment: invalid, at: assessment.updatedAt }).ok, false);
+  assert.equal(saveProbationDraft(assigned.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-3", assessment: invalid }).ok, false);
+  const saved = saveProbationDraft(assigned.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", assessment: invalid });
+  assert.equal(saved.ok, true);
+  assert.equal(saved.review.draft.scores.length, 3);
+  assert.equal(evaluateProbationReview(saved.state, { reviewId: assigned.review.id, expectedVersion: 1, actorId: "OH-2", outcome: "pass", evidence: assessment.evidence, assessment, at: assessment.updatedAt }).ok, false);
+  assert.equal(evaluateProbationReview(saved.state, { reviewId: assigned.review.id, expectedVersion: 2, actorId: "OH-2", outcome: "pass", evidence: assessment.evidence, assessment, at: assessment.updatedAt }).ok, true);
 });

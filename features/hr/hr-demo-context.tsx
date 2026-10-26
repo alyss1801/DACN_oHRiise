@@ -20,8 +20,9 @@ import { useDemoData } from "@/features/demo/demo-data-context";
 import { useSession } from "@/features/session/session-context";
 import { canAccessScopedRecord } from "@/lib/authorization/engine";
 import { personaEmployeeIds } from "@/lib/authorization/demo-identity";
-import { assignProbationReview, decideProbationReview, evaluateProbationReview } from "./probation-model";
+import { assignProbationReview, decideProbationReview, evaluateProbationReview, saveProbationDraft as saveProbationDraftModel } from "./probation-model";
 import type { ProbationResult } from "./probation-model";
+import type { ProbationAssessment } from "./probation-template";
 import { completeOnboardingAccountTask } from "./onboarding-model";
 import { recordSelfPunch } from "./self-punch-model";
 
@@ -37,8 +38,9 @@ type HrContextValue = HrState & {
   confirmAttendance: (command: AttendanceConfirmationCommand) => AttendanceConfirmationResult;
   submitAttendanceExplanation: (attendanceId: string, expectedVersion: number, text: string) => AttendanceExplanationResult;
   reviewAttendanceExplanation: (explanationId: string, decision: "confirmed" | "rejected", reason: string) => AttendanceExplanationResult;
-  assignProbation: (employeeId: string, dueAt: string) => ProbationResult;
-  evaluateProbation: (reviewId: string, expectedVersion: number, outcome: "pass" | "fail", evidence: string) => ProbationResult;
+  assignProbation: (employeeId: string, dueAt: string, templateId?: string) => ProbationResult;
+  saveProbationDraft: (reviewId: string, expectedVersion: number, assessment: ProbationAssessment) => ProbationResult;
+  evaluateProbation: (reviewId: string, expectedVersion: number, outcome: "pass" | "fail", evidence: string, assessment?: ProbationAssessment) => ProbationResult;
   decideProbation: (reviewId: string, expectedVersion: number, decision: "activate" | "offboard", reason: string) => ProbationResult;
   openPeriod: (id: string) => boolean;
   closePeriod: (id: string, actor: string, leaveDates: TimesheetSnapshot["leaveDates"]) => boolean;
@@ -195,17 +197,25 @@ export function HrDemoProvider({ children }: { children: React.ReactNode }) {
     const next = { ...assetState.current, attendanceExplanations: result.state.attendanceExplanations, activities: [event(`Quản lý ${decision === "confirmed" ? "xác nhận" : "từ chối"} giải trình công ${result.explanation.attendanceId}. ${reason.trim()}`, person), ...assetState.current.activities] };
     assetState.current = next; setData(next); return result;
   }
-  function assignProbation(employeeId: string, dueAt: string): ProbationResult {
+  function assignProbation(employeeId: string, dueAt: string, templateId?: string): ProbationResult {
     const current = assetState.current; const person = current.employees.find((item) => item.id === employeeId);
     if (!can("probation", "approve") || !person || !canAccessScopedRecord(session, { employeeId, branch: person.branch, department: person.department })) return { ok: false, error: "Chỉ HR phụ trách mới được giao đánh giá trong phạm vi này." };
-    const result = assignProbationReview(current, { employeeId, dueAt, actorId: personaEmployeeIds[session.id] ?? `demo-persona:${session.id}`, actor: session.label, at: demoBusinessNow().toISOString(), businessDate: demoBusinessDate() });
+    const result = assignProbationReview(current, { employeeId, dueAt, templateId, actorId: personaEmployeeIds[session.id] ?? `demo-persona:${session.id}`, actor: session.label, at: demoBusinessNow().toISOString(), businessDate: demoBusinessDate() });
     if (!result.ok) return result;
     const next = { ...current, probationReviews: result.state.probationReviews, activities: [event(`Giao đánh giá thử việc ${result.review.id} cho quản lý ${result.review.managerId}.`, person), ...current.activities] };
     assetState.current = next; setData(next); return result;
   }
-  function evaluateProbation(reviewId: string, expectedVersion: number, outcome: "pass" | "fail", evidence: string): ProbationResult {
+  function saveProbationDraft(reviewId: string, expectedVersion: number, assessment: ProbationAssessment): ProbationResult {
+    if (!can("probation", "edit")) return { ok: false, error: "Không có quyền lưu đánh giá thử việc." };
+    const current = assetState.current;
+    const result = saveProbationDraftModel(current, { reviewId, expectedVersion, actorId: personaEmployeeIds[session.id] ?? "", assessment });
+    if (!result.ok) return result;
+    const next = { ...current, probationReviews: result.state.probationReviews };
+    assetState.current = next; setData(next); return result;
+  }
+  function evaluateProbation(reviewId: string, expectedVersion: number, outcome: "pass" | "fail", evidence: string, assessment?: ProbationAssessment): ProbationResult {
     if (!can("probation", "edit")) return { ok: false, error: "Không có quyền đánh giá thử việc." };
-    const current = assetState.current; const result = evaluateProbationReview(current, { reviewId, expectedVersion, actorId: personaEmployeeIds[session.id] ?? "", outcome, evidence, at: demoBusinessNow().toISOString() });
+    const current = assetState.current; const result = evaluateProbationReview(current, { reviewId, expectedVersion, actorId: personaEmployeeIds[session.id] ?? "", outcome, evidence, assessment, at: demoBusinessNow().toISOString() });
     if (!result.ok) return result;
     const person = current.employees.find((item) => item.id === result.review.employeeId);
     const next = { ...current, probationReviews: result.state.probationReviews, activities: [event(`Quản lý nộp đánh giá thử việc ${reviewId}: ${outcome}.`, person), ...current.activities] };
@@ -358,19 +368,24 @@ export function HrDemoProvider({ children }: { children: React.ReactNode }) {
   }
   function resetHrDemo() { assetState.current = initialHrState; setData(initialHrState); }
 
-  return <HrContext.Provider value={{ ...data, createEmployee, updateEmployee, createContract, markContractSigned, verifyContract, applyAssetAction, resolveAttendance, punchAttendance, confirmAttendance, submitAttendanceExplanation: submitAttendanceExplanationAction, reviewAttendanceExplanation: reviewAttendanceExplanationAction, assignProbation, evaluateProbation, decideProbation, openPeriod, closePeriod, reopenPeriod, recordExport, adjustLeave, createCase, changeOffboarding, completeCaseTask, completeAccountOnboarding, completeAccountOffboarding, savePolicyDraft, publishPolicy, createRequisition, createCandidate, updateCandidate, convertCandidate, updateOrganization, resetHrDemo }}>{children}</HrContext.Provider>;
+  return <HrContext.Provider value={{ ...data, createEmployee, updateEmployee, createContract, markContractSigned, verifyContract, applyAssetAction, resolveAttendance, punchAttendance, confirmAttendance, submitAttendanceExplanation: submitAttendanceExplanationAction, reviewAttendanceExplanation: reviewAttendanceExplanationAction, assignProbation, saveProbationDraft, evaluateProbation, decideProbation, openPeriod, closePeriod, reopenPeriod, recordExport, adjustLeave, createCase, changeOffboarding, completeCaseTask, completeAccountOnboarding, completeAccountOffboarding, savePolicyDraft, publishPolicy, createRequisition, createCandidate, updateCandidate, convertCandidate, updateOrganization, resetHrDemo }}>{children}</HrContext.Provider>;
 }
 
 export function useHrDemo() { const context = useContext(HrContext); if (!context) throw new Error("useHrDemo must be used inside HrDemoProvider"); return context; }
 
 function normalizeHrSnapshot(snapshot: HrState): HrState {
+  const addedPeople = initialHrState.employees.filter((item) => ["OH-0301", "OH-0302"].includes(item.id) && !snapshot.employees.some((person) => person.id === item.id));
+  const baseReview = initialHrState.probationReviews[0];
+  const needsReview = snapshot.employees.some((item) => item.id === baseReview.employeeId && item.status === "probation") && !snapshot.probationReviews?.some((item) => item.employeeId === baseReview.employeeId);
   return {
     ...snapshot,
-    employees: snapshot.employees.map((item) => item.employmentType === "Thử việc" ? { ...item, employmentType: "Toàn thời gian" } : item),
+    employees: [...snapshot.employees.map((item) => item.employmentType === "Thử việc" ? { ...item, employmentType: "Toàn thời gian" } : item), ...addedPeople],
     assetHandovers: normalizeAssetHandovers(snapshot.assets, snapshot.assetHandovers),
     ...normalizeAttendanceSnapshot(snapshot),
+    shiftAssignments: [...(snapshot.shiftAssignments ?? []), ...initialHrState.shiftAssignments.filter((seed) => !(snapshot.shiftAssignments ?? []).some((item) => item.id === seed.id))],
     selfPunches: Array.isArray(snapshot.selfPunches) ? snapshot.selfPunches : [],
-    probationReviews: Array.isArray(snapshot.probationReviews) ? snapshot.probationReviews : [],
+    probationReviews: [...(Array.isArray(snapshot.probationReviews) ? snapshot.probationReviews : []), ...(needsReview ? [baseReview] : [])],
+    organization: { ...snapshot.organization, teams: snapshot.organization.teams.map((team) => team.id === "TEAM-DP" ? { ...team, memberIds: [...new Set([...team.memberIds, ...addedPeople.filter((person) => person.primaryTeamId === team.id).map((person) => person.id)])] } : team) },
     contracts: snapshot.contracts.map((item) => item.type === "Không xác định thời hạn" ? { ...item, endsAt: null } : item),
     policies: snapshot.policies.map((item) => item.status === "active" && item.effectiveAt > hrToday() ? { ...item, status: "scheduled" } : item),
   };

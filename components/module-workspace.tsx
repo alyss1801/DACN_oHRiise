@@ -123,7 +123,7 @@ export function ModuleWorkspace({ moduleId, onHome, onNavigate }: { moduleId: st
   if (moduleId === "notifications") return <NotificationsWorkspace onNavigate={onNavigate} />;
   if (moduleId === "team") return <TeamOverviewWorkspace onNavigate={onNavigate} />;
   if (moduleId === "leave" || moduleId.startsWith("approvals/leave")) return <LeaveWorkspace key={moduleId} moduleId={moduleId} onNavigate={onNavigate} />;
-  if (resolvedModuleId === "approvals") return <ApprovalMiniappWorkspace key={moduleId} initialTemplate={moduleId.split("/")[1]} onNavigate={onNavigate} />;
+  if (resolvedModuleId === "approvals") return <ApprovalMiniappWorkspace key={moduleId} initialTemplate={moduleId.split("/")[1]} initialRequestId={moduleId.split("/")[2]} onNavigate={onNavigate} />;
   if (moduleId === "team-calendar") return <TeamCalendarWorkspace onNavigate={onNavigate} />;
   if (resolvedModuleId === "ai-wfh") return <WfhWorkspace moduleId={moduleId} onNavigate={onNavigate} />;
   if (moduleId === "organization") return <OrganizationWorkspace onNavigate={onNavigate} />;
